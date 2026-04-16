@@ -1,0 +1,6 @@
+[submodule "tests/zamiacad"]
+	path = tests/zamiacad
+	url = git://git.code.sf.net/p/zamiacad/code
+[submodule "tests/ghdl"]
+	path = tests/ghdl
+	url = https://github.com/ghdl/ghdl.git

@@ -1,0 +1,1 @@
+../build/Debug/vhdl_fe $(find zamiacad/examples -name '*.vhd' -or -name '*.vhdl' | grep -v _tb.vhd )

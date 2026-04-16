@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "vhdl_fe add4",
+            "program": "${workspaceFolder}/build/Debug/vhdl_fe",
+            "arguments": "tests/zamiacad/examples/add4/add4.vhdl tests/zamiacad/examples/add4/va.vhdl tests/zamiacad/examples/add4/ha.vhdl",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "vhdl_fe latw_gcd",
+            "program": "${workspaceFolder}/build/Debug/vhdl_fe",
+            "arguments": "tests/zamiacad/examples/gcd/tb_latw_gcd.vhd tests/zamiacad/examples/gcd/latw_gcd.vhd",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
