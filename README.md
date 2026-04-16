@@ -1,4 +1,4 @@
-[![CMake on a single platform](https://github.com/HYPRSENSE-Project/VHDL-Frontend/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/HYPRSENSE-Project/VHDL-Frontend/actions/workflows/cmake-single-platform.yml)
+[![CMake Build  & Test](https://github.com/HYPRSENSE-Project/VHDL-Frontend/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/HYPRSENSE-Project/VHDL-Frontend/actions/workflows/cmake-single-platform.yml)
 
 # VHDL-Frontend
 
