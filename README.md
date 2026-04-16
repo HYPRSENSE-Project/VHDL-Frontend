@@ -10,3 +10,14 @@ The current state uses the parser from [hdlConvertor](https://github.com/Nic30/h
  * VhdlStatementParser.visitSelected_variable_assignments
  * VhdlStatementParser.visitSimple_waveform_assignment
 
+The grammar is missing the following keywords which are reserved in VHDL2008:
+ * assume
+ * assume_guarantee
+ * cover
+ * default (wrong syntax)
+ * fairness
+ * restrict
+ * restrict_guarantee
+ * strong
+ * vmode
+ * vprop

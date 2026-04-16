@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
   try {
     hdlConvertor::hdlAst::HdlContext ctx;
     for (auto i = 1; i < argc; i++)
-      ret += static_cast<int>(parse_vhdl(ctx, argv[i]));
+      ret += static_cast<int>(!parse_vhdl(ctx, argv[i]));
     // print_ast(std::cout, ctx);
     // std::cout << std::endl;
     return ret;

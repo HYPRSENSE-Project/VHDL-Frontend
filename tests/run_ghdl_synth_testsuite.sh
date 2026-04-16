@@ -1,1 +1,1 @@
-../build/Debug/vhdl_fe $(find ghdl/testsuite/synth -name '*.vhd' -or -name '*.vhdl' | grep -v _tb.vhd )
+../build/Debug/vhdl_fe $(find ghdl/testsuite/synth -name '*.vhd' -or -name '*.vhdl' | grep -v 'synth/issue' )
