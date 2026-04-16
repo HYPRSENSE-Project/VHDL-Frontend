@@ -1,3 +1,5 @@
+[![CMake on a single platform](https://github.com/HYPRSENSE-Project/VHDL-Frontend/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/HYPRSENSE-Project/VHDL-Frontend/actions/workflows/cmake-single-platform.yml)
+
 # VHDL-Frontend
 
 The current state uses the parser from [hdlConvertor](https://github.com/Nic30/hdlConvertor.git) as engine. Using the (Zamiacad)[git://git.code.sf.net/p/zamiacad/code] examples and (GHDL)[https://github.com/ghdl/ghdl.git] testsuite indicate, that the following AST elements are not yet supported:
