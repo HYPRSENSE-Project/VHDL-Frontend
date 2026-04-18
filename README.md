@@ -4,6 +4,7 @@
 
 The current state uses the parser from [hdlConvertor](https://github.com/Nic30/hdlConvertor.git) as engine. Using the [Zamiacad](git://git.code.sf.net/p/zamiacad/code) examples and [GHDL](https://github.com/ghdl/ghdl.git) testsuite indicate, that the following AST elements are not yet supported:
 
+ * VhdlBlockDeclarationParser.visitconfiguration_specification
  * VhdlStatementParser.visitCase_statement
  * VhdlStatementParser.visitConcurrent_procedure_call_statement
  * VhdlStatementParser.visitConcurrent_selected_signal_assignment
@@ -12,6 +13,9 @@ The current state uses the parser from [hdlConvertor](https://github.com/Nic30/h
  * VhdlStatementParser.visitSelected_signal_assignment
  * VhdlStatementParser.visitSelected_variable_assignments
  * VhdlStatementParser.visitSimple_waveform_assignment
+ * VhdlProcessParser.visitAttribute_specification
+ * VhdlProcessParser.visitAttribute_declaration
+ * ExprParser.visitWaveform_element
 
 The grammar is missing the following keywords which are reserved in VHDL2008:
 
