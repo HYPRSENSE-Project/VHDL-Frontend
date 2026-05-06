@@ -16,8 +16,7 @@ add_subdirectory(src/parser)
 add_executable(vhdl_fe
     #src/ast_printer.cpp
     src/main.cpp
-    src/parser/encodingConversions.cpp
-    src/parser/syntaxErrorLogger.cpp
+    src/ast_printer.cpp
 )
 
 target_include_directories(vhdl_fe PRIVATE src)

@@ -1,4 +1,4 @@
-#include "notImplementedLogger.h"
+#include "not_implemented_logger.h"
 #include <antlr4-runtime.h>
 
 namespace parser {
@@ -12,8 +12,8 @@ void NotImplementedLogger::print(const char* msg, antlr4::ParserRuleContext* ctx
         auto file = is->getSourceName();
         auto line = t->getLine() - 1; // 1..n
         auto ch = t->getCharPositionInLine();
-        std::cerr << file << ":" << line << ":" << ch << ": " << msg << " Conversion to Python object not implemented" << std::endl;
-        std::cerr << "    ..." << ctx->getText() << "..." << std::endl;
+        std::cerr << file << ":" << line << ":" << ch << ": " << msg << " Parsing of rule for '..." << ctx->getText()
+                  << "...' not implemented" << std::endl;
     }
 }
 
@@ -25,8 +25,8 @@ void NotImplementedLogger::print(const std::string& msg, antlr4::tree::TerminalN
         auto file = is->getSourceName();
         auto line = t->getLine() - 1; // 1..n
         auto ch = t->getCharPositionInLine();
-        std::cerr << file << ":" << line << ":" << ch << ": " << msg << " Conversion to Python object not implemented" << std::endl;
-        std::cerr << "    ..." << ctx->getText() << "..." << std::endl;
+        std::cerr << file << ":" << line << ":" << ch << ": " << msg << " Parsing of terminal '..." << ctx->getText()
+                  << "...' not implemented" << std::endl;
     }
 }
 } // namespace parser

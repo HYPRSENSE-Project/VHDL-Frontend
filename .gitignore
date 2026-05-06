@@ -42,3 +42,4 @@
 .cache
 /build
 *.log
+src/grammar/.antlr

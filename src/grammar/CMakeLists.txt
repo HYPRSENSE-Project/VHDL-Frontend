@@ -27,7 +27,7 @@ find_package(ANTLR REQUIRED)
 
 set(ANTLR_GENERATED_ROOT "${CMAKE_CURRENT_BINARY_DIR}/antlr4cpp_generated_src")
 set(ANTLR_VHDL_OUTPUT_DIR
-    "${ANTLR_GENERATED_ROOT}/hdlConvertor/vhdlConvertor/vhdlParser")
+    "${ANTLR_GENERATED_ROOT}/vhdlParser")
 
 antlr_target(vhdlLexer vhdlLexer.g4
     LEXER

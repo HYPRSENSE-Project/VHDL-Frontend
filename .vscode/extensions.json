@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "mike-lischke.vscode-antlr4",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.cpp-devtools",
+        "ms-vscode.cpptools",
+        "mkhl.direnv"
+    ]
+}

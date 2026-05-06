@@ -1,4 +1,5 @@
-#include "encodingConversions.h"
+#include "encoding_conversions.h"
+#include <Exceptions.h>
 #include <codecvt>
 #include <locale>
 
@@ -60,10 +61,15 @@ antlr4::ANTLRInputStream ANTLRFileStream_with_encoding(const std::filesystem::pa
     // Sets contents of 'str' to all characters in the file.
     str.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 
-    str = _to_utf8(str, enc);
-
     try {
+        str = _to_utf8(str, enc);
         antlr4::ANTLRInputStream input_stream(str);
+        input_stream.name = file_name.u8string();
+        return input_stream;
+    } catch(const antlr4::IllegalArgumentException& e) {
+        if(enc != encoding::UTF_8)
+            throw;
+        antlr4::ANTLRInputStream input_stream(iso_8859_1_to_utf8(str));
         input_stream.name = file_name.u8string();
         return input_stream;
     } catch(const std::range_error& e) {

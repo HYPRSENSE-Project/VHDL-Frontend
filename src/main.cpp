@@ -1,53 +1,46 @@
+#include "ast/ast_nodes.h"
 #include "ast_printer.h"
 #include "parser/parser.h"
 #include <filesystem>
-#include <hdlConvertor/vhdlConvertor/vhdlParser/vhdlLexer.h>
-#include <hdlConvertor/vhdlConvertor/vhdlParser/vhdlParser.h>
 #include <iostream>
 #include <parser/parser.h>
-
-bool parse_vhdl(const std::filesystem::path& path) {
-    if(!std::filesystem::exists(path)) {
-        throw std::runtime_error(std::string("VHDL source not found: ") + path.c_str());
-    }
-    std::cout << "Parsing file " << path << std::endl;
-    try {
-#if 0
-        VHDLParserContainer pc(ctx);
-        pc.parse_file(path, "utf-8", false);
-#else
-        parser::Parser parser;
-        parser.parse_file(path, parser::encoding::UTF_8, true);
-#endif
-    } catch(const std::exception& e) {
-        std::cerr << "error: " << e.what() << "\n";
-        return false;
-    }
-    return true;
-}
+#include <vector>
+#include <vhdlParser/vhdlLexer.h>
+#include <vhdlParser/vhdlParser.h>
 
 int main(int argc, char** argv) {
     if(argc < 2) {
         std::cerr << "Usage: vhdl_fe <file.vhd> [<file.vhd>]*\n";
         return 1;
     }
-    int ret = 0;
     bool enable_print_ast = false;
-    try {
-        for(auto i = 1; i < argc; i++)
-            if(strncmp(argv[i], "-v", 2) == 0)
-                enable_print_ast = true;
-            else {
+    parser::Parser parser;
+    std::vector<ast::design_file*> results;
+    std::string actual_libname = "work";
+    for(auto i = 1; i < argc; i++)
+        if(strncmp(argv[i], "-v", 2) == 0)
+            enable_print_ast = true;
+        else if(strncmp(argv[i], "-l", 2) == 0) {
+            if(++i >= argc)
+                throw std::runtime_error("not enough arguments to '-l' switch");
+            actual_libname = argv[i];
+        } else {
+            try {
                 const std::filesystem::path path = argv[i];
-                ret += static_cast<int>(!parse_vhdl(path));
-                // if(enable_print_ast) {
-                //     print_ast(std::cout, ctx);
-                //     std::cout << std::endl;
-                // }
+                if(!std::filesystem::exists(path)) {
+                    throw std::runtime_error(std::string("VHDL source not found: ") + argv[i]);
+                }
+                std::cout << "Parsing file " << path << std::endl;
+                results.push_back(parser.parse_file(path, parser::encoding::UTF_8, actual_libname));
+            } catch(const std::exception& e) {
+                std::cerr << "error: " << e.what() << "\n";
+                std::cerr << "file will be exlecuded from elaboration";
             }
-        return ret;
-    } catch(const std::exception& e) {
-        std::cerr << "error: " << e.what() << "\n";
-        return -1;
+        }
+    if(enable_print_ast) {
+        for(auto& df : results)
+            print_ast(std::cout, df);
+        std::cout << std::endl;
     }
+    return 0;
 }

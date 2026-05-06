@@ -1,4 +1,4 @@
-#include "syntaxErrorLogger.h"
+#include "syntax_error_logger.h"
 
 #include "conversion_exception.h"
 #include <antlr4-runtime.h>
@@ -21,8 +21,8 @@ void SyntaxErrorLogger::check_errors() {
     stringstream error_msg;
     error_msg << endl;
     for(auto& e : _errors) {
-        error_msg << e.filename << ':' << e.line << ':' << (uint32_t)e.charPosition << ":" << error_prefix << "SyntaxError:" << e.message
-                  << endl;
+        error_msg << "    " << e.filename << ':' << e.line << ':' << (uint32_t)e.charPosition << ": " << error_prefix
+                  << " SyntaxError:" << e.message << endl;
     }
     if(_errors.size() > 0) {
         throw ParseException(error_msg.str());

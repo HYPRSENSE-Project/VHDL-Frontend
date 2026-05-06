@@ -1,391 +1,176 @@
 #include "ast_printer.h"
 
-#include <hdlConvertor/hdlAst/hdlCompInst.h>
-#include <hdlConvertor/hdlAst/hdlContext.h>
-#include <hdlConvertor/hdlAst/hdlIdDef.h>
-#include <hdlConvertor/hdlAst/hdlLibrary.h>
-#include <hdlConvertor/hdlAst/hdlModuleDec.h>
-#include <hdlConvertor/hdlAst/hdlModuleDef.h>
-#include <hdlConvertor/hdlAst/hdlNamespace.h>
-#include <hdlConvertor/hdlAst/hdlOp.h>
-#include <hdlConvertor/hdlAst/hdlStmAssign.h>
-#include <hdlConvertor/hdlAst/hdlStmBlock.h>
-#include <hdlConvertor/hdlAst/hdlStmExpr.h>
-#include <hdlConvertor/hdlAst/hdlStmIf.h>
-#include <hdlConvertor/hdlAst/hdlStmProcess.h>
-#include <hdlConvertor/hdlAst/hdlStm_others.h>
-#include <hdlConvertor/hdlAst/hdlValue.h>
-#include <hdlConvertor/hdlAst/iHdlExpr.h>
-
-#include <cctype>
-#include <fstream>
-#include <iostream>
-#include <memory>
 #include <ostream>
-#include <string>
-#include <string_view>
-#include <typeinfo>
-#include <vector>
+#include <type_traits>
 
 namespace {
-
-using namespace hdlConvertor::hdlAst;
-
-void indent(std::ostream &os, int level) {
-  for (int i = 0; i < level; ++i) {
-    os.put(' ');
-  }
-}
-
-void print_expr(std::ostream &os, const iHdlExprItem *expr);
-void print_obj(std::ostream &os, const iHdlObj *obj, int level);
-
-bool is_ident_char(char c) {
-  const auto uc = static_cast<unsigned char>(c);
-  return std::isalnum(uc) || c == '_';
-}
-
-bool is_space(char c) {
-  return std::isspace(static_cast<unsigned char>(c)) != 0;
-}
-
-char lower_char(char c) {
-  return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-}
-
-std::string trim(std::string_view text) {
-  size_t start = 0;
-  size_t end = text.size();
-  while (start < end && is_space(text[start])) {
-    ++start;
-  }
-  while (end > start && is_space(text[end - 1])) {
-    --end;
-  }
-  return std::string(text.substr(start, end - start));
-}
-
-void skip_space(std::string_view text, size_t &pos) {
-  while (pos < text.size() && is_space(text[pos])) {
-    ++pos;
-  }
-}
-
-bool match_keyword(std::string_view text, size_t pos,
-                   std::string_view keyword) {
-  if (pos + keyword.size() > text.size()) {
-    return false;
-  }
-  if (pos > 0 && is_ident_char(text[pos - 1])) {
-    return false;
-  }
-  for (size_t i = 0; i < keyword.size(); ++i) {
-    if (lower_char(text[pos + i]) != keyword[i]) {
-      return false;
+void print_string_list(std::ostream& os, const std::vector<std::string>& values) {
+    for(size_t i = 0; i < values.size(); ++i) {
+        if(i)
+            os << ", ";
+        os << values[i];
     }
-  }
-  const size_t end = pos + keyword.size();
-  return end >= text.size() || !is_ident_char(text[end]);
 }
 
-std::string parse_identifier(std::string_view text, size_t &pos) {
-  skip_space(text, pos);
-  const size_t start = pos;
-  while (pos < text.size() && is_ident_char(text[pos])) {
-    ++pos;
-  }
-  return std::string(text.substr(start, pos - start));
+void print_object(std::ostream& os, const ast::interface_declaration_item& item) {
+    std::visit(
+        [&os](auto* decl) {
+            if(!decl)
+                return;
+            using T = std::decay_t<decltype(*decl)>;
+            if constexpr(std::is_same_v<T, ast::signal_declaration>) {
+                os << decl->name;
+                if(!decl->type.empty())
+                    os << " : " << decl->type;
+            } else if constexpr(std::is_same_v<T, ast::interface_constant_declaration> ||
+                                std::is_same_v<T, ast::interface_signal_declaration> ||
+                                std::is_same_v<T, ast::interface_variable_declaration> ||
+                                std::is_same_v<T, ast::interface_file_declaration>) {
+                print_string_list(os, decl->identifier_list);
+                if(decl->subtype_indic && !decl->subtype_indic->type.empty())
+                    os << " : " << decl->subtype_indic->type;
+            } else if constexpr(std::is_same_v<T, ast::constant_declaration> || std::is_same_v<T, ast::variable_declaration> ||
+                                std::is_same_v<T, ast::file_declaration>) {
+                print_string_list(os, decl->identifiers);
+                if(decl->indication && !decl->indication->type.empty())
+                    os << " : " << decl->indication->type;
+            }
+        },
+        item);
 }
 
-std::string strip_vhdl_comments(std::string_view text) {
-  std::string out;
-  out.reserve(text.size());
-  bool in_string = false;
-  for (size_t i = 0; i < text.size(); ++i) {
-    const char c = text[i];
-    if (!in_string && c == '-' && i + 1 < text.size() && text[i + 1] == '-') {
-      while (i < text.size() && text[i] != '\n') {
-        out.push_back(' ');
-        ++i;
-      }
-      if (i < text.size()) {
-        out.push_back(text[i]);
-      }
-      continue;
+void print_object_list(std::ostream& os, const char* title, const std::vector<ast::interface_declaration_item>& items) {
+    os << "  " << title << ":\n";
+    for(const auto& item : items) {
+        os << "    ";
+        print_object(os, item);
+        os << '\n';
     }
-    if (c == '"') {
-      in_string = !in_string;
-    }
-    out.push_back(c);
-  }
-  return out;
 }
 
-std::string read_file(const std::string &path) {
-  std::ifstream in(path);
-  if (!in) {
-    throw std::runtime_error("Unable to open VHDL source: " + path);
-  }
-  return std::string((std::istreambuf_iterator<char>(in)),
-                     std::istreambuf_iterator<char>());
-}
+void print_instantiation(std::ostream& os, const std::string& label, const ast::component_instantiation_statement* inst) {
+    if(!inst)
+        return;
 
-void print_expr_list(std::ostream &os,
-                     const std::vector<std::unique_ptr<iHdlExprItem>> &exprs) {
-  bool first = true;
-  for (const auto &expr : exprs) {
-    if (!first) {
-      os << ", ";
+    os << "    ";
+    if(!label.empty())
+        os << label << ": ";
+
+    switch(inst->unit_kind) {
+    case ast::instantiated_unit_kind_e::ENTITY:
+        os << "entity ";
+        break;
+    case ast::instantiated_unit_kind_e::CONFIGURATION:
+        os << "configuration ";
+        break;
+    case ast::instantiated_unit_kind_e::COMPONENT:
+        os << "component ";
+        break;
     }
-    first = false;
-    print_expr(os, expr.get());
-  }
-}
 
-void print_path(std::ostream &os,
-                const std::vector<std::unique_ptr<iHdlExprItem>> &path) {
-  bool first = true;
-  for (const auto &item : path) {
-    if (!first) {
-      os << '.';
-    }
-    first = false;
-    print_expr(os, item.get());
-  }
-}
-
-void print_expr(std::ostream &os, const iHdlExprItem *expr) {
-  if (!expr) {
-    os << "<null>";
-    return;
-  }
-
-  if (const auto *id = dynamic_cast<const HdlValueId *>(expr)) {
-    os << id->_str;
-    return;
-  }
-  if (const auto *value = dynamic_cast<const HdlValueInt *>(expr)) {
-    if (value->_int.is_bitstring()) {
-      os << value->_int.bitstring;
-    } else {
-      os << value->_int.val;
-    }
-    return;
-  }
-  if (const auto *value = dynamic_cast<const HdlValueStr *>(expr)) {
-    os << '"' << value->_str << '"';
-    return;
-  }
-  if (const auto *value = dynamic_cast<const HdlValueFloat *>(expr)) {
-    os << value->_float;
-    return;
-  }
-  if (const auto *value = dynamic_cast<const HdlValueSymbol *>(expr)) {
-    os << HdlValueSymbol::toString(value->symb);
-    return;
-  }
-  if (const auto *value = dynamic_cast<const HdlValueArr *>(expr)) {
-    os << '[';
-    if (value->_arr) {
-      print_expr_list(os, *value->_arr);
-    }
-    os << ']';
-    return;
-  }
-  if (const auto *op = dynamic_cast<const HdlOp *>(expr)) {
-    os << HdlOpType_toString(op->op) << '(';
-    print_expr_list(os, op->operands);
-    os << ')';
-    return;
-  }
-
-  os << "<expr:" << typeid(*expr).name() << '>';
-}
-
-void print_id_def(std::ostream &os, const HdlIdDef &id, int level) {
-  indent(os, level);
-  if (id.direction != DIR_INTERNAL) {
-    os << "Port " << HdlDirection_toString(id.direction) << ' ';
-  } else if (id.is_const) {
-    os << "Const ";
-  } else if (id.is_latched) {
-    os << "Var ";
-  } else {
-    os << "Signal ";
-  }
-
-  os << id.name;
-  if (id.type) {
-    os << " : ";
-    print_expr(os, id.type.get());
-  }
-  if (id.value) {
-    os << " := ";
-    print_expr(os, id.value.get());
-  }
-  os << '\n';
-}
-
-void print_obj(std::ostream &os, const iHdlObj *obj, int level) {
-  if (!obj) {
-    indent(os, level);
-    os << "<null>\n";
-    return;
-  }
-
-  if (const auto *module = dynamic_cast<const HdlModuleDec *>(obj)) {
-    indent(os, level);
-    os << "Entity " << module->name << '\n';
-    for (const auto &generic : module->generics) {
-      print_id_def(os, *generic, level + 2);
-    }
-    for (const auto &port : module->ports) {
-      print_id_def(os, *port, level + 2);
-    }
-    for (const auto &child : module->objs) {
-      print_obj(os, child.get(), level + 2);
-    }
-    return;
-  }
-
-  if (const auto *library = dynamic_cast<const HdlLibrary *>(obj)) {
-    indent(os, level);
-    os << "Library " << library->name << '\n';
-    return;
-  }
-
-  if (const auto *module = dynamic_cast<const HdlModuleDef *>(obj)) {
-    indent(os, level);
-    os << "Architecture " << module->name;
-    if (module->module_name) {
-      os << " of ";
-      print_expr(os, module->module_name.get());
-    }
+    os << inst->unit_name;
+    if(!inst->architecture_id.empty())
+        os << '(' << inst->architecture_id << ')';
     os << '\n';
-    for (const auto &child : module->objs) {
-      print_obj(os, child.get(), level + 2);
-    }
-    return;
-  }
-
-  if (const auto *id = dynamic_cast<const HdlIdDef *>(obj)) {
-    print_id_def(os, *id, level);
-    return;
-  }
-
-  if (const auto *process = dynamic_cast<const HdlStmProcess *>(obj)) {
-    indent(os, level);
-    os << "Process";
-    if (process->sensitivity_list && !process->sensitivity_list->empty()) {
-      os << " (";
-      print_expr_list(os, *process->sensitivity_list);
-      os << ')';
-    }
-    os << '\n';
-    print_obj(os, process->body.get(), level + 2);
-    return;
-  }
-
-  if (const auto *import = dynamic_cast<const HdlStmImport *>(obj)) {
-    indent(os, level);
-    os << "Use ";
-    print_path(os, import->path);
-    os << '\n';
-    return;
-  }
-
-  if (const auto *block = dynamic_cast<const HdlStmBlock *>(obj)) {
-    indent(os, level);
-    os << "Block " << HdlStmBlockJoinType_toString(block->join_t) << '\n';
-    for (const auto &statement : block->statements) {
-      print_obj(os, statement.get(), level + 2);
-    }
-    return;
-  }
-
-  if (const auto *assign = dynamic_cast<const HdlStmAssign *>(obj)) {
-    indent(os, level);
-    os << "Assign ";
-    print_expr(os, assign->dst.get());
-    os << (assign->is_blocking ? " := " : " <= ");
-    print_expr(os, assign->src.get());
-    os << '\n';
-    return;
-  }
-
-  if (const auto *expr_stm = dynamic_cast<const HdlStmExpr *>(obj)) {
-    indent(os, level);
-    os << "Expr ";
-    print_expr(os, expr_stm->expr.get());
-    os << '\n';
-    return;
-  }
-
-  if (const auto *if_stm = dynamic_cast<const HdlStmIf *>(obj)) {
-    indent(os, level);
-    os << "If ";
-    print_expr(os, if_stm->cond.get());
-    os << '\n';
-    print_obj(os, if_stm->ifTrue.get(), level + 2);
-    for (const auto &else_if : if_stm->elseIfs) {
-      indent(os, level);
-      os << "ElseIf ";
-      print_expr(os, else_if.expr.get());
-      os << '\n';
-      print_obj(os, else_if.obj.get(), level + 2);
-    }
-    if (if_stm->ifFalse) {
-      indent(os, level);
-      os << "Else\n";
-      print_obj(os, if_stm->ifFalse.get(), level + 2);
-    }
-    return;
-  }
-
-  if (const auto *wait = dynamic_cast<const HdlStmWait *>(obj)) {
-    indent(os, level);
-    os << "Wait";
-    if (!wait->val.empty()) {
-      os << ' ';
-      print_expr_list(os, wait->val);
-    }
-    os << '\n';
-    return;
-  }
-
-  if (const auto *instance = dynamic_cast<const HdlCompInst *>(obj)) {
-    indent(os, level);
-    os << "Instance ";
-    print_expr(os, instance->name.get());
-    os << " : ";
-    print_expr(os, instance->module_name.get());
-    os << '\n';
-    return;
-  }
-
-  if (const auto *space = dynamic_cast<const HdlValueIdspace *>(obj)) {
-    indent(os, level);
-    os << "Namespace " << space->name << '\n';
-    for (const auto &child : space->objs) {
-      print_obj(os, child.get(), level + 2);
-    }
-    return;
-  }
-
-  if (const auto *statement = dynamic_cast<const iHdlStatement *>(obj)) {
-    indent(os, level);
-    os << "Statement " << typeid(*statement).name() << '\n';
-    return;
-  }
-
-  indent(os, level);
-  os << "Object " << typeid(*obj).name() << '\n';
 }
 
+void print_statement_components(std::ostream& os, const ast::concurrent_statement* stmt);
+
+void print_body_components(std::ostream& os, const ast::generate_statement_body& body) {
+    for(const auto* stmt : body.concurrent_statements)
+        print_statement_components(os, stmt);
+}
+
+void print_statement_components(std::ostream& os, const ast::concurrent_statement* stmt) {
+    if(!stmt)
+        return;
+
+    std::visit(
+        [&os, stmt](auto* node) {
+            if(!node)
+                return;
+            using T = std::decay_t<decltype(*node)>;
+            if constexpr(std::is_same_v<T, ast::component_instantiation_statement>) {
+                print_instantiation(os, stmt->label.empty() ? node->label : stmt->label, node);
+            } else if constexpr(std::is_same_v<T, ast::block_statement>) {
+                for(const auto* child : node->concurrent_statements)
+                    print_statement_components(os, child);
+            } else if constexpr(std::is_same_v<T, ast::for_generate_statement>) {
+                print_body_components(os, node->body);
+            } else if constexpr(std::is_same_v<T, ast::if_generate_statement>) {
+                for(const auto* clause : node->clauses) {
+                    if(clause)
+                        print_body_components(os, clause->body);
+                }
+                print_body_components(os, node->else_body);
+            } else if constexpr(std::is_same_v<T, ast::case_generate_statement>) {
+                for(const auto* alternative : node->alternatives) {
+                    if(alternative)
+                        print_body_components(os, alternative->body);
+                }
+            }
+        },
+        stmt->statement);
+}
+
+void print_selected_name(std::ostream& os, const ast::selected_name& name) {
+    os << name.identifier;
+    if(!name.suffix.empty())
+        os << '.' << name.suffix;
+}
 } // namespace
 
-void print_ast(std::ostream &os, const hdlConvertor::hdlAst::HdlContext &ctx) {
-  for (const auto &obj : ctx.objs) {
-    print_obj(os, obj.get(), 0);
-  }
+void print_ast(std::ostream& os, ast::design_file* top) {
+    if(!top)
+        return;
+
+    for(const auto& unit : top->units) {
+        std::visit(
+            [&os](auto* item) {
+                if(!item)
+                    return;
+                using T = std::decay_t<decltype(*item)>;
+                if constexpr(std::is_same_v<T, ast::library_clause>) {
+                    os << "library ";
+                    print_string_list(os, item->names);
+                    os << '\n';
+                } else if constexpr(std::is_same_v<T, ast::use_clause>) {
+                    os << "use ";
+                    for(auto pkg : item->clauses) {
+                        os << pkg->identifier;
+                        for(auto s : pkg->suffixes)
+                            os << "." << s;
+                        os << '\n';
+                    }
+                } else if constexpr(std::is_same_v<T, ast::context_reference>) {
+                    os << "context ";
+                    for(size_t i = 0; i < item->selected_names.size(); ++i) {
+                        if(i)
+                            os << ", ";
+                        print_selected_name(os, item->selected_names[i]);
+                    }
+                    os << '\n';
+                } else if constexpr(std::is_same_v<T, ast::entity_declaration>) {
+                    os << "entity " << item->identifier << '\n';
+                    print_object_list(os, "generics", item->generic_list);
+                    print_object_list(os, "ports", item->port_list);
+                } else if constexpr(std::is_same_v<T, ast::configuration_declaration>) {
+                    os << "configuration " << item->identifier << '\n';
+                } else if constexpr(std::is_same_v<T, ast::package_declaration>) {
+                    os << "package " << item->identifier << '\n';
+                } else if constexpr(std::is_same_v<T, ast::package_instantiation_declaration>) {
+                    os << "package instantiation " << item->identifier << '\n';
+                } else if constexpr(std::is_same_v<T, ast::context_declaration>) {
+                    os << "context " << item->identifier << '\n';
+                } else if constexpr(std::is_same_v<T, ast::architecture_body>) {
+                    os << "architecture " << item->identifier << " of " << item->primary << '\n';
+                    os << "  component instantiations:\n";
+                    for(const auto* stmt : item->concurrent_statements)
+                        print_statement_components(os, stmt);
+                } else if constexpr(std::is_same_v<T, ast::package_body>) {
+                    os << "package body " << item->identifier << '\n';
+                }
+            },
+            unit);
+    }
 }

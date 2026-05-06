@@ -629,7 +629,7 @@ signal_list:
       | KW_ALL
 ;
 
-attribute_designator: identifier | any_keyword;
+attribute_designator: pathname_element | any_keyword;
 external_name:
       SHIFT_LEFT (KW_VARIABLE | KW_CONSTANT | KW_SIGNAL) external_pathname COLON subtype_indication SHIFT_RIGHT
 ;
