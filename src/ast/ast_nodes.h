@@ -18,9 +18,10 @@ enum class signal_mode_e { NONE, IN, OUT, INOUT, BUFFER, LINKAGE };
 
 enum class expression_kind_e { CONDITIONAL_PRIMARY, SIMPLE, SHIFT, RELATIONAL, LOGICAL, RAW };
 
-enum class simple_expression_kind_e { PRIMARY, POWER, PREFIX, MULTIPLY, ADD, RAW };
+enum class simple_expression_kind_e { PRIMARY, POWER, PREFIX, MUL_DIV, ADD_SUB, RAW };
 
 enum class operation_kind_e {
+    NONE,
     PLUS,
     MINUS,
     AMPERSAND,
@@ -93,8 +94,41 @@ enum class generic_map_aspect_e { MAP, BOX, DEFAULT };
 
 enum class force_mode_e { IN, OUT };
 // clang-format off
+using declaration_ref = std::variant<
+    std::monostate,
+    builtin_declaration*,
+    entity_declaration*,
+    architecture_body*,
+    configuration_declaration*,
+    package_declaration*,
+    package_body*,
+    package_instantiation_declaration*,
+    context_declaration*,
+    component_declaration*,
+    signal_declaration*,
+    subprogram_declaration*,
+    subprogram_declaration_overload*,
+    subprogram_instantiation_declaration*,
+    type_declaration*,
+    subtype_declaration*,
+    constant_declaration*,
+    variable_declaration*,
+    file_declaration*,
+    alias_declaration*,
+    attribute_declaration*,
+    group_template_declaration*,
+    group_declaration*,
+    interface_constant_declaration*,
+    interface_signal_declaration*,
+    interface_variable_declaration*,
+    interface_file_declaration*,
+    interface_type_declaration*,
+    interface_subprogram_declaration*,
+    interface_package_declaration*>;
+
 using primary_item = std::variant<
-    string_node*, 
+    literal_node*,
+    name_node*,
     allocator*, 
     aggregate*, 
     qualified_expression*>;
@@ -102,7 +136,7 @@ using primary_item = std::variant<
 using expression_item = std::variant<
     simple_expression*,
     conditional_primary*,
-    string_node*, 
+    literal_node*, 
     allocator*, 
     aggregate*, 
     qualified_expression*,
@@ -228,8 +262,6 @@ using unit_item = std::variant<
     architecture_body*, 
     package_body*>;
 
-using file_type_definition = string_node;
-
 using type_definition_item = std::variant<
     // scalar_type_definition
     numeric_type_definition*,
@@ -242,7 +274,7 @@ using type_definition_item = std::variant<
     // access_type_definition
     subtype_indication*,
     // file_type_definition
-    file_type_definition*,
+    name_node*,
     // protected_type_definition
     protected_type_definition*,
     protected_type_declaration*>;
@@ -303,7 +335,7 @@ using generate_specification_item= std::variant<
     //expression
     simple_expression*,
     conditional_primary*,
-    string_node*, 
+    literal_node*, 
     allocator*, 
     aggregate*, 
     qualified_expression*,
@@ -319,7 +351,7 @@ using choice_item = std::variant<
     attribute_range*,
     explicit_range*,
     simple_expression*,
-    string_node*>;
+    literal_node*>;
 using sequential_statement_item = std::variant<
     wait_statement*,
     assertion_statement*,
@@ -350,12 +382,23 @@ using sequential_statement_item = std::variant<
     null_statement*>;
 using target_item = std::variant<
     aggregate*,
-    string_node*>;
+    name_node*>;
 
 // clang-format on
 
-struct string_node {
+struct literal_node {
     std::string text;
+    declaration_ref resolved_ref;
+};
+
+struct name_node {
+    std::string text;
+    declaration_ref resolved_ref;
+};
+
+struct builtin_declaration {
+    std::string identifier;
+    entity_class_e entity_class;
 };
 
 struct library_clause {
@@ -365,6 +408,9 @@ struct library_clause {
 struct used_package {
     std::string identifier;
     std::vector<std::string> suffixes;
+    // elaborated members
+    package_declaration* package_ref{nullptr};
+    declaration_ref selected_ref;
 };
 
 struct use_clause {
@@ -396,6 +442,8 @@ struct signal_declaration {
     std::string type;
     constraint_item constraint;
     bool is_bus;
+    // elaborated members
+    declaration_ref type_ref;
 };
 
 struct block_specification {
@@ -420,19 +468,30 @@ struct configuration_declaration {
     std::string name;
     std::vector<configuration_declarative_item> declarative_items;
     block_configuration* block_config;
+    // elaborated members
+    std::vector<ast::use_clause*> packages_in_scope;
+    design_file* my_file;
+    // elaborated members
+    entity_declaration* entity_ref{nullptr};
 };
 
 struct component_specification {
     std::vector<std::string> instantiations;
     std::string name;
+    // elaborated members
+    component_declaration* component_ref{nullptr};
 };
 
 struct binding_indication {
-    entity_aspect_e type;
+    entity_aspect_e type{entity_aspect_e::OPEN};
     std::string unit_ref;
     std::string identifier;
     std::vector<association_element*> generic_map;
     std::vector<association_element*> port_map;
+    // elaborated members
+    entity_declaration* entity_ref{nullptr};
+    architecture_body* architecture_ref{nullptr};
+    configuration_declaration* configuration_ref{nullptr};
 };
 
 struct configuration_specification {
@@ -445,22 +504,35 @@ struct package_declaration {
     std::vector<interface_declaration_item> generic_list;
     std::vector<association_element*> generic_map;
     std::vector<package_declarative_item> declarative_items;
+    // elaborated members
+    std::vector<ast::use_clause*> packages_in_scope;
+    design_file* my_file;
+    std::vector<package_body*> body;
 };
 
 struct package_instantiation_declaration {
     std::string identifier;
     std::string target_name;
     std::vector<association_element*> generic_map;
+    // elaborated members
+    std::vector<ast::use_clause*> packages_in_scope;
+    design_file* my_file;
+    package_declaration* target_package_ref{nullptr};
 };
 
 struct selected_name {
     std::string identifier;
     std::string suffix;
+    // elaborated members
+    declaration_ref resolved_ref;
 };
 
 struct context_declaration {
     std::string identifier;
     std::vector<context_item> context_items;
+    // elaborated members
+    std::vector<ast::use_clause*> packages_in_scope;
+    design_file* my_file;
 };
 
 struct component_declaration {
@@ -476,11 +548,20 @@ struct subprogram_declaration {
     std::vector<association_element*> generic_map;
     std::vector<interface_declaration_item> parameter_list;
     std::string return_type;
+    // elaborated members
+    declaration_ref return_type_ref;
+};
+
+struct subprogram_declaration_overload {
+    std::string designator;
+    std::vector<subprogram_declaration*> overloads;
 };
 
 struct subprogram_instantiation_declaration {
     std::string designator;
     std::string target_name;
+    // elaborated members
+    subprogram_declaration* target_ref{nullptr};
 };
 
 struct enumeration_type_definition {
@@ -546,6 +627,8 @@ struct explicit_range {
 struct attribute_range {
     std::string name;
     std::string attribute_designator;
+    // elaborated members
+    declaration_ref prefix_ref;
 };
 
 struct subtype_declaration {
@@ -582,11 +665,17 @@ struct alias_declaration {
     // signature
     std::vector<std::string> type_marks;
     std::string return_type_mark;
+    // elaborated members
+    declaration_ref name_ref;
+    std::vector<declaration_ref> type_mark_refs;
+    declaration_ref return_type_mark_ref;
 };
 
 struct attribute_declaration {
     std::string identifier;
     std::string type_mark;
+    // elaborated members
+    declaration_ref type_ref;
 };
 
 struct interface_constant_declaration {
@@ -632,6 +721,8 @@ struct interface_function_specification {
     std::string designator;
     std::vector<interface_declaration_item> formal_parameter_list;
     std::string return_type_mark;
+    // elaborated members
+    declaration_ref return_type_ref;
 };
 
 struct interface_subprogram_declaration {
@@ -645,6 +736,8 @@ struct interface_package_declaration {
     std::string name;
     generic_map_aspect_e map_type{generic_map_aspect_e::MAP};
     std::vector<association_element*> generic_map_aspect;
+    // elaborated members
+    package_declaration* package_ref{nullptr};
 };
 
 struct attribute_specification {
@@ -652,6 +745,8 @@ struct attribute_specification {
     std::vector<std::string> entity_name_list;
     entity_class_e entity_class;
     expression_item expr;
+    // elaborated members
+    std::vector<declaration_ref> entity_refs;
 };
 
 struct entity_class_entry {
@@ -668,6 +763,9 @@ struct group_declaration {
     std::string identifier;
     std::string name;
     std::vector<std::string> group_constituent_list;
+    // elaborated members
+    declaration_ref template_ref;
+    std::vector<declaration_ref> constituent_refs;
 };
 
 struct subprogram_body {
@@ -679,12 +777,20 @@ struct subprogram_body {
 struct package_body {
     std::string identifier;
     std::vector<package_body_declarative_item> declarative_items;
+    // elaborated members
+    std::vector<ast::use_clause*> packages_in_scope;
+    design_file* my_file;
+    // elaborated members
+    package_declaration* package_ref{nullptr};
 };
 
 struct disconnection_specification {
     std::vector<std::string> signal_list;
     std::string type_mark;
     expression_item after_expression;
+    // elaborated members
+    std::vector<declaration_ref> signal_refs;
+    declaration_ref type_ref;
 };
 
 struct actual_designator {
@@ -699,6 +805,9 @@ struct association_element {
     std::string formal_paren_name;
     std::string actual_name;
     actual_designator* act_designator;
+    // elaborated members
+    declaration_ref formal_ref;
+    declaration_ref actual_ref;
 };
 
 struct record_element_resolution {
@@ -713,17 +822,23 @@ struct record_resolution {
 struct resolution_indication {
     std::string name;
     resolution_item elem_resolution;
+    // elaborated members
+    declaration_ref resolution_ref;
 };
 
 struct subtype_indication {
     resolution_indication* resolution;
     std::string type;
     constraint_item constr;
+    // elaborated members
+    declaration_ref type_ref;
 };
 
 struct qualified_expression {
     std::string type;
     aggregate* aggr;
+    // elaborated members
+    declaration_ref type_ref;
 };
 
 struct allocator {
@@ -742,7 +857,7 @@ struct element_association {
 
 struct simple_expression {
     simple_expression_kind_e kind{simple_expression_kind_e::RAW};
-    operation_kind_e op;
+    operation_kind_e op{operation_kind_e::NONE};
     primary_item first_primary;
     primary_item secondary_primary;
     simple_expression* lhs{nullptr};
@@ -789,6 +904,11 @@ struct component_instantiation_statement {
     std::string architecture_id;
     std::vector<association_element*> generic_map;
     std::vector<association_element*> port_map;
+    // elaborated members
+    component_declaration* component_ref{nullptr};
+    entity_declaration* entity_ref{nullptr};
+    architecture_body* architecture_ref{nullptr};
+    configuration_declaration* configuration_ref{nullptr};
 };
 
 struct generate_statement_body {
@@ -836,12 +956,16 @@ struct process_statement {
     std::vector<std::string> sensitivity_list;
     std::vector<process_declarative_item> declarative_items;
     std::vector<sequential_statement*> sequential_statements;
+    // elaborated members
+    std::vector<declaration_ref> sensitivity_refs;
 };
 
 struct concurrent_procedure_call_statement {
     std::string label;
     bool postponed{false};
     std::string name;
+    // elaborated members
+    declaration_ref procedure_ref;
 };
 
 struct concurrent_assertion_statement {
@@ -899,6 +1023,10 @@ struct entity_declaration {
     std::vector<interface_declaration_item> port_list;
     std::vector<entity_declarative_item> entity_declarative_items;
     std::vector<entity_statement*> entity_statements;
+    // elaborated members
+    std::vector<ast::use_clause*> packages_in_scope;
+    design_file* my_file;
+    std::vector<architecture_body*> architectures;
 };
 
 struct architecture_body {
@@ -906,6 +1034,10 @@ struct architecture_body {
     std::string primary;
     std::vector<block_declarative_item> block_declarative_items;
     std::vector<concurrent_statement*> concurrent_statements;
+    // elaborated members
+    std::vector<ast::use_clause*> packages_in_scope;
+    design_file* my_file;
+    entity_declaration* entity_ref{nullptr};
 };
 
 struct design_file {
@@ -922,6 +1054,8 @@ struct wait_statement {
     std::vector<std::string> sensitivity_list;
     expression_item condition_clause;
     expression_item timeout_clause;
+    // elaborated members
+    std::vector<declaration_ref> sensitivity_refs;
 };
 
 struct assertion_statement {
@@ -1010,6 +1144,8 @@ struct selected_variable_assignment {
 
 struct procedure_call_statement {
     std::string name;
+    // elaborated members
+    declaration_ref procedure_ref;
 };
 
 struct if_statement {

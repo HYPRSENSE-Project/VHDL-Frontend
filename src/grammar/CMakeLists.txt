@@ -47,8 +47,8 @@ add_library(vhdl_grammar STATIC
     ${ANTLR_vhdlLexer_CXX_OUTPUTS}
     ${ANTLR_vhdlParser_CXX_OUTPUTS}
 )
-add_library(vhdl_grammar::vhdl_grammar ALIAS vhdl_grammar)
 
 target_compile_definitions(vhdl_grammar PUBLIC ANTLR4CPP_STATIC)
 target_include_directories(vhdl_grammar PUBLIC "${ANTLR_GENERATED_ROOT}")
 target_link_libraries(vhdl_grammar PUBLIC antlr4_static)
+add_library(vhdl_fe::vhdl_grammar ALIAS vhdl_grammar)

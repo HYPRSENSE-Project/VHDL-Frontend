@@ -1,8 +1,10 @@
-#include "ast/ast_nodes.h"
 #include "ast_printer.h"
-#include "parser/parser.h"
+#include "elaborator.h"
+#include <array>
+#include <ast_nodes.h>
 #include <filesystem>
 #include <iostream>
+#include <parser.h>
 #include <parser/parser.h>
 #include <vector>
 #include <vhdlParser/vhdlLexer.h>
@@ -37,6 +39,13 @@ int main(int argc, char** argv) {
                 std::cerr << "file will be exlecuded from elaboration";
             }
         }
+    vhdl_fe::elaborator elab(parser);
+    elab.add_design_files(results);
+    elab.resolve_references();
+    std::array<std::string, 2> severity_str{"WARN", "ERR"};
+    for(auto& diag : elab.get_diagnostics()) {
+        std::cerr << "[" << severity_str[static_cast<unsigned>(diag.severity)] << "]: " << diag.message << "\n";
+    }
     if(enable_print_ast) {
         for(auto& df : results)
             print_ast(std::cout, df);

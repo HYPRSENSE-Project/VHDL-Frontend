@@ -6,7 +6,8 @@ add_library(parser
 )
 
 target_include_directories(parser PUBLIC
+    ${PROJECT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_link_libraries(parser PUBLIC ast vhdl_grammar::vhdl_grammar)
-add_library(parser::parser ALIAS parser)
+target_link_libraries(parser PUBLIC vhdl_fe::vhdl_grammar vhdl_fe::ast)
+add_library(vhdl_fe::parser ALIAS parser)

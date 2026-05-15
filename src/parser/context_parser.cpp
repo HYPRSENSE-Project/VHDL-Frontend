@@ -237,7 +237,7 @@ ast::type_definition_item parse(vhdlParser::Type_definitionContext* ctx, ast::as
         return parse(access->subtype_indication(), anf);
 
     if(auto file = ctx->file_type_definition()) {
-        auto node = anf.create<ast::file_type_definition>();
+        auto node = anf.create<ast::name_node>();
         node->text = file->type_mark()->getText();
         return node;
     }
@@ -432,19 +432,37 @@ ast::aggregate* parse(vhdl_antlr::vhdlParser::AggregateContext* ctx, ast::ast_no
     auto n = anf.create<ast::aggregate>();
     return n;
 }
+
+bool is_character_literal_name(vhdlParser::NameContext* ctx) {
+    return ctx && ctx->name_literal() && ctx->name_literal()->CHARACTER_LITERAL();
+}
+// TODO: fix literal handling
+ast::primary_item parse(vhdlParser::Numeric_literalContext* ctx, ast::ast_node_factory& anf) {
+    if(ctx->name() && !ctx->DECIMAL_LITERAL() && !ctx->BASED_LITERAL()) {
+        auto text = get_optional_name(ctx->name());
+        if(!is_character_literal_name(ctx->name())) {
+            auto n = anf.create<ast::name_node>();
+            n->text = std::move(text);
+            return n;
+        }
+    }
+
+    auto n = anf.create<ast::literal_node>();
+    n->text = ctx->getText();
+    return n;
+}
+
 ast::primary_item parse(vhdl_antlr::vhdlParser::PrimaryContext* ctx, ast::ast_node_factory& anf) {
     if(auto nl = ctx->numeric_literal()) {
-        auto n = anf.create<ast::string_node>();
-        n->text = nl->getText();
-        return n;
+        return parse(nl, anf);
     }
     if(auto nl = ctx->BIT_STRING_LITERAL()) {
-        auto n = anf.create<ast::string_node>();
+        auto n = anf.create<ast::literal_node>();
         n->text = nl->getText();
         return n;
     }
     if(auto nl = ctx->KW_NULL()) {
-        auto n = anf.create<ast::string_node>();
+        auto n = anf.create<ast::literal_node>();
         n->text = nl->getText();
         return n;
     }
@@ -516,7 +534,7 @@ ast::simple_expression* parse(vhdlParser::Simple_expressionContext* ctx, ast::as
         node->operand = parse(ctx->simple_expression(0), anf);
     }
     if(ctx->multiplying_operator()) {
-        node->kind = ast::simple_expression_kind_e::MULTIPLY;
+        node->kind = ast::simple_expression_kind_e::MUL_DIV;
         auto oper = ctx->multiplying_operator();
         if(oper->MUL())
             node->op = ast::operation_kind_e::MUL;
@@ -530,7 +548,7 @@ ast::simple_expression* parse(vhdlParser::Simple_expressionContext* ctx, ast::as
         node->rhs = parse(ctx->simple_expression(1), anf);
     }
     if(ctx->adding_operator()) {
-        node->kind = ast::simple_expression_kind_e::ADD;
+        node->kind = ast::simple_expression_kind_e::ADD_SUB;
         auto oper = ctx->adding_operator();
         if(oper->PLUS())
             node->op = ast::operation_kind_e::PLUS;
@@ -892,7 +910,7 @@ std::vector<ast::choice_item> parse(vhdlParser::ChoicesContext* ctx, ast::ast_no
             auto parsed_range = parse(discrete_range, anf);
             std::visit([&res](auto item) { res.emplace_back(item); }, parsed_range);
         } else if(choice_ctx->KW_OTHERS()) {
-            auto n = anf.create<ast::string_node>();
+            auto n = anf.create<ast::literal_node>();
             n->text = "OTHERS";
             res.push_back(n);
         }
@@ -1427,7 +1445,7 @@ ast::entity_declaration* parse(vhdlParser::Entity_declarationContext* ctx, ast::
     }
     if(auto port_clause = ctx->port_clause()) {
         for(auto elem : port_clause->port_list()->interface_list()->interface_element())
-            n->generic_list.emplace_back(parse(elem, anf));
+            n->port_list.emplace_back(parse(elem, anf));
     }
     for(auto e : ctx->entity_declarative_item()) {
         auto elements = parse(e, anf);
@@ -1450,7 +1468,7 @@ ast::generate_specification_item parse(vhdlParser::Generate_specificationContext
         auto parsed = parse(expression, anf);
         return std::visit([](auto value) -> ast::generate_specification_item { return value; }, parsed);
     }
-    auto label = anf.create<ast::string_node>();
+    auto label = anf.create<ast::literal_node>();
     label->text = get_label(ctx->label());
     return label;
 }
@@ -1689,7 +1707,7 @@ ast::target_item parse(vhdlParser::TargetContext* ctx, ast::ast_node_factory& an
     if(auto aggregate = ctx->aggregate())
         return parse(aggregate, anf);
 
-    auto node = anf.create<ast::string_node>();
+    auto node = anf.create<ast::name_node>();
     node->text = get_optional_name(ctx->name());
     return node;
 }

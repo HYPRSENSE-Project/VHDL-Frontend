@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ast/ast_node_factory.h"
-#include "ast/ast_nodes.h"
+#include "ast_node_factory.h"
+#include "ast_nodes.h"
 #include "context_parser.h"
 #include "encoding_conversions.h"
 #include "syntax_error_logger.h"
@@ -13,11 +13,10 @@
 
 namespace parser {
 using namespace vhdl_antlr;
-class Parser {
+struct Parser {
     SyntaxErrorLogger syntaxErrLogger;
     ast::ast_node_factory anf;
 
-public:
     /*
      * :param context: if context is nullptr new context is generated
      *                 otherwise specified context is used
