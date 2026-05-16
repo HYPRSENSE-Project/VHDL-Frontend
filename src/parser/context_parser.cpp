@@ -137,7 +137,7 @@ ast::subtype_indication* parse(vhdlParser::Subtype_indicationContext* ctx, ast::
     auto node = anf.create<ast::subtype_indication>();
     if(auto resolution = ctx->resolution_indication())
         node->resolution = parse(resolution, anf);
-    node->type = ctx->type_mark()->getText();
+    node->type = ctx->type_mark()->getText(); // TODO: parse type_mark
     if(auto constraint = ctx->constraint())
         node->constr = parse(constraint, anf);
     return node;
@@ -202,7 +202,7 @@ ast::type_definition_item parse(vhdlParser::Type_definitionContext* ctx, ast::as
                 const auto& definitions = unbounded->index_subtype_definition();
                 node->index_subtype_definitions.reserve(definitions.size());
                 for(auto definition : definitions)
-                    node->index_subtype_definitions.emplace_back(definition->type_mark()->getText());
+                    node->index_subtype_definitions.emplace_back(definition->type_mark()->getText()); // TODO: parse type_mark
                 return node;
             } else if(auto constrained = atd->constrained_array_definition()) {
                 auto node = anf.create<ast::constrained_array_definition>();
@@ -218,13 +218,12 @@ ast::type_definition_item parse(vhdlParser::Type_definitionContext* ctx, ast::as
             const auto& declarations = record->element_declaration();
             node->element_declarations.reserve(declarations.size());
             for(auto declaration : declarations) {
-                auto element = anf.create<ast::element_declaration>();
-                const auto& identifiers = declaration->identifier_list()->identifier();
-                element->identifier_list.reserve(identifiers.size());
-                for(auto identifier : identifiers)
-                    element->identifier_list.emplace_back(get_identifier(identifier));
-                element->element_subtype_definition = parse(declaration->element_subtype_definition()->subtype_indication(), anf);
-                node->element_declarations.emplace_back(element);
+                for(auto identifier : declaration->identifier_list()->identifier()) {
+                    auto element = anf.create<ast::element_declaration>();
+                    element->identifier = get_identifier(identifier);
+                    element->element_subtype_definition = parse(declaration->element_subtype_definition()->subtype_indication(), anf);
+                    node->element_declarations.emplace_back(element);
+                }
             }
             if(auto identifier = record->identifier())
                 node->identifier = get_identifier(identifier);
@@ -237,7 +236,7 @@ ast::type_definition_item parse(vhdlParser::Type_definitionContext* ctx, ast::as
 
     if(auto file = ctx->file_type_definition()) {
         auto node = anf.create<ast::name_node>();
-        node->text = file->type_mark()->getText();
+        node->text = file->type_mark()->getText(); // TODO: parse type_mark
         return node;
     }
 
@@ -258,8 +257,8 @@ ast::type_definition_item parse(vhdlParser::Type_definitionContext* ctx, ast::as
         } else if(auto body = protected_type->protected_type_body()) {
             node->type = ast::protected_type_e::BODY;
             for(auto item : body->process_declarative_item()) {
-                auto parsed = parse(item, anf);
-                std::visit([node](auto value) { node->body_declarations.emplace_back(value); }, parsed);
+                for(auto& parsed : parse(item, anf))
+                    std::visit([node](auto value) { node->body_declarations.emplace_back(value); }, parsed);
             }
         }
         return node;
@@ -471,7 +470,7 @@ ast::primary_item parse(vhdl_antlr::vhdlParser::PrimaryContext* ctx, ast::ast_no
             auto sti = anf.create<ast::subtype_indication>();
             if(auto resolution = stic->resolution_indication())
                 sti->resolution = parse(resolution, anf);
-            sti->type = stic->type_mark()->getText();
+            sti->type = stic->type_mark()->getText(); // TODO: parse type_mark
             if(auto constraint = stic->constraint())
                 sti->constr = parse(constraint, anf);
             n->si = sti;
@@ -483,7 +482,7 @@ ast::primary_item parse(vhdl_antlr::vhdlParser::PrimaryContext* ctx, ast::ast_no
     }
     if(auto qe = ctx->qualified_expression()) {
         auto n = anf.create<ast::qualified_expression>();
-        n->type = qe->type_mark()->getText();
+        n->type = qe->type_mark()->getText(); // TODO: parse type_mark
         n->aggr = parse(qe->aggregate(), anf);
         return n;
     }
@@ -637,76 +636,82 @@ ast::expression_item parse(vhdlParser::ExpressionContext* ctx, ast::ast_node_fac
 
 ast::expression_item parse(vhdlParser::ConditionContext* ctx, ast::ast_node_factory& anf) { return parse(ctx->expression(), anf); }
 
-ast::interface_constant_declaration* parse(vhdlParser::Interface_constant_declarationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::interface_constant_declaration>();
-    const auto& ids = ctx->identifier_list()->identifier();
-    node->identifier_list.reserve(ids.size());
-    for(auto id : ids)
-        node->identifier_list.emplace_back(get_identifier(id));
-    node->is_in = ctx->KW_IN() != nullptr;
-    node->subtype_indic = parse(ctx->subtype_indication(), anf);
-    if(auto expr = ctx->expression())
-        node->expression = parse(expr, anf);
-    return node;
-}
-
-ast::interface_signal_declaration* parse(vhdlParser::Interface_signal_declarationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::interface_signal_declaration>();
-    const auto& ids = ctx->identifier_list()->identifier();
-    node->identifier_list.reserve(ids.size());
-    for(auto id : ids)
-        node->identifier_list.emplace_back(get_identifier(id));
-    if(auto mode = ctx->signal_mode()) {
-        if(mode->KW_IN())
-            node->signal_mode = ast::signal_mode_e::IN;
-        else if(mode->KW_OUT())
-            node->signal_mode = ast::signal_mode_e::OUT;
-        else if(mode->KW_INOUT())
-            node->signal_mode = ast::signal_mode_e::INOUT;
-        else if(mode->KW_BUFFER())
-            node->signal_mode = ast::signal_mode_e::BUFFER;
-        else if(mode->KW_LINKAGE())
-            node->signal_mode = ast::signal_mode_e::LINKAGE;
+std::vector<ast::interface_constant_declaration*> parse(vhdlParser::Interface_constant_declarationContext* ctx,
+                                                        ast::ast_node_factory& anf) {
+    std::vector<ast::interface_constant_declaration*> res;
+    for(auto id : ctx->identifier_list()->identifier()) {
+        auto node = anf.create<ast::interface_constant_declaration>();
+        node->identifier = get_identifier(id);
+        node->is_in = ctx->KW_IN() != nullptr;
+        node->subtype_indic = parse(ctx->subtype_indication(), anf);
+        if(auto expr = ctx->expression())
+            node->expression = parse(expr, anf);
+        res.push_back(node);
     }
-    node->subtype_indic = parse(ctx->subtype_indication(), anf);
-    node->is_bus = ctx->KW_BUS() != nullptr;
-    if(auto expr = ctx->expression())
-        node->expression = parse(expr, anf);
-    return node;
+    return res;
 }
 
-ast::interface_variable_declaration* parse(vhdlParser::Interface_variable_declarationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::interface_variable_declaration>();
-    const auto& ids = ctx->identifier_list()->identifier();
-    node->identifier_list.reserve(ids.size());
-    for(auto id : ids)
-        node->identifier_list.emplace_back(get_identifier(id));
-    if(auto mode = ctx->signal_mode()) {
-        if(mode->KW_IN())
-            node->signal_mode = ast::signal_mode_e::IN;
-        else if(mode->KW_OUT())
-            node->signal_mode = ast::signal_mode_e::OUT;
-        else if(mode->KW_INOUT())
-            node->signal_mode = ast::signal_mode_e::INOUT;
-        else if(mode->KW_BUFFER())
-            node->signal_mode = ast::signal_mode_e::BUFFER;
-        else if(mode->KW_LINKAGE())
-            node->signal_mode = ast::signal_mode_e::LINKAGE;
+std::vector<ast::interface_signal_declaration*> parse(vhdlParser::Interface_signal_declarationContext* ctx, ast::ast_node_factory& anf) {
+    std::vector<ast::interface_signal_declaration*> res;
+    for(auto id : ctx->identifier_list()->identifier()) {
+        auto node = anf.create<ast::interface_signal_declaration>();
+        node->identifier = get_identifier(id);
+        if(auto mode = ctx->signal_mode()) {
+            if(mode->KW_IN())
+                node->signal_mode = ast::signal_mode_e::IN;
+            else if(mode->KW_OUT())
+                node->signal_mode = ast::signal_mode_e::OUT;
+            else if(mode->KW_INOUT())
+                node->signal_mode = ast::signal_mode_e::INOUT;
+            else if(mode->KW_BUFFER())
+                node->signal_mode = ast::signal_mode_e::BUFFER;
+            else if(mode->KW_LINKAGE())
+                node->signal_mode = ast::signal_mode_e::LINKAGE;
+        }
+        node->subtype_indic = parse(ctx->subtype_indication(), anf);
+        node->is_bus = ctx->KW_BUS() != nullptr;
+        if(auto expr = ctx->expression())
+            node->expression = parse(expr, anf);
+        res.push_back(node);
     }
-    node->subtype_indic = parse(ctx->subtype_indication(), anf);
-    if(auto expr = ctx->expression())
-        node->expression = parse(expr, anf);
-    return node;
+    return res;
 }
 
-ast::interface_file_declaration* parse(vhdlParser::Interface_file_declarationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::interface_file_declaration>();
-    const auto& ids = ctx->identifier_list()->identifier();
-    node->identifier_list.reserve(ids.size());
-    for(auto id : ids)
-        node->identifier_list.emplace_back(get_identifier(id));
-    node->subtype_indic = parse(ctx->subtype_indication(), anf);
-    return node;
+std::vector<ast::interface_variable_declaration*> parse(vhdlParser::Interface_variable_declarationContext* ctx,
+                                                        ast::ast_node_factory& anf) {
+    std::vector<ast::interface_variable_declaration*> res;
+    for(auto id : ctx->identifier_list()->identifier()) {
+        auto node = anf.create<ast::interface_variable_declaration>();
+        node->identifier = get_identifier(id);
+        if(auto mode = ctx->signal_mode()) {
+            if(mode->KW_IN())
+                node->signal_mode = ast::signal_mode_e::IN;
+            else if(mode->KW_OUT())
+                node->signal_mode = ast::signal_mode_e::OUT;
+            else if(mode->KW_INOUT())
+                node->signal_mode = ast::signal_mode_e::INOUT;
+            else if(mode->KW_BUFFER())
+                node->signal_mode = ast::signal_mode_e::BUFFER;
+            else if(mode->KW_LINKAGE())
+                node->signal_mode = ast::signal_mode_e::LINKAGE;
+        }
+        node->subtype_indic = parse(ctx->subtype_indication(), anf);
+        if(auto expr = ctx->expression())
+            node->expression = parse(expr, anf);
+        res.push_back(node);
+    }
+    return res;
+}
+
+std::vector<ast::interface_file_declaration*> parse(vhdlParser::Interface_file_declarationContext* ctx, ast::ast_node_factory& anf) {
+    std::vector<ast::interface_file_declaration*> res;
+    for(auto id : ctx->identifier_list()->identifier()) {
+        auto node = anf.create<ast::interface_file_declaration>();
+        node->identifier = get_identifier(id);
+        node->subtype_indic = parse(ctx->subtype_indication(), anf);
+        res.push_back(node);
+    }
+    return res;
 }
 
 ast::interface_type_declaration* parse(vhdlParser::Interface_type_declarationContext* ctx, ast::ast_node_factory& anf) {
@@ -721,8 +726,10 @@ static void append_interface_declaration_items(std::vector<ast::interface_declar
         return;
     const auto& elems = ctx->interface_element();
     target.reserve(target.size() + elems.size());
-    for(auto elem : elems)
-        target.emplace_back(parse(elem, anf));
+    for(auto elem : elems) {
+        auto items = parse(elem, anf);
+        target.insert(target.end(), items.begin(), items.end());
+    }
 }
 
 ast::interface_procedure_specification* parse(vhdlParser::Interface_procedure_specificationContext* ctx, ast::ast_node_factory& anf) {
@@ -741,7 +748,7 @@ ast::interface_function_specification* parse(vhdlParser::Interface_function_spec
     node->designator = get_designator(ctx->designator());
     if(auto params = ctx->formal_parameter_list())
         append_interface_declaration_items(node->formal_parameter_list, params->interface_list(), anf);
-    node->return_type_mark = ctx->type_mark()->getText();
+    node->return_type_mark = ctx->type_mark()->getText(); // TODO: parse type_mark
     return node;
 }
 
@@ -774,7 +781,7 @@ ast::interface_package_declaration* parse(vhdlParser::Interface_package_declarat
     return node;
 }
 
-ast::interface_declaration_item parse(vhdlParser::Interface_elementContext* i, ast::ast_node_factory& anf) {
+std::vector<ast::interface_declaration_item> parse(vhdlParser::Interface_elementContext* i, ast::ast_node_factory& anf) {
     // interface_element: interface_declaration;
     // interface_declaration:
     //       interface_object_declaration
@@ -812,54 +819,75 @@ ast::interface_declaration_item parse(vhdlParser::Interface_elementContext* i, a
     // ;
     if(auto o = i->interface_declaration()->interface_object_declaration()) {
         if(auto c = o->interface_constant_declaration()) {
-            return parse(c, anf);
+            std::vector<ast::interface_declaration_item> res;
+            auto items = parse(c, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
         } else if(auto s = o->interface_signal_declaration()) {
-            return parse(s, anf);
+            std::vector<ast::interface_declaration_item> res;
+            auto items = parse(s, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
         } else if(auto v = o->interface_variable_declaration()) {
-            return parse(v, anf);
+            std::vector<ast::interface_declaration_item> res;
+            auto items = parse(v, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
         } else if(auto f = o->interface_file_declaration()) {
-            return parse(f, anf);
+            std::vector<ast::interface_declaration_item> res;
+            auto items = parse(f, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
         }
     } else if(auto t = i->interface_declaration()->interface_type_declaration()) {
-        return parse(t, anf);
+        return {parse(t, anf)};
     } else if(auto d = i->interface_declaration()->interface_subprogram_declaration()) {
-        return parse(d, anf);
+        return {parse(d, anf)};
     } else if(auto p = i->interface_declaration()->interface_package_declaration()) {
-        return parse(p, anf);
+        return {parse(p, anf)};
     }
     throw std::runtime_error("Unsupported interface_element");
 }
 
-ast::disconnection_specification* parse(vhdlParser::Disconnection_specificationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::disconnection_specification>();
-    if(auto spec = ctx->guarded_signal_specification()) {
-        if(auto signal_list = spec->signal_list()) {
-            if(signal_list->KW_OTHERS()) {
-                node->signal_list.emplace_back(signal_list->KW_OTHERS()->getText());
-            } else if(signal_list->KW_ALL()) {
-                node->signal_list.emplace_back(signal_list->KW_ALL()->getText());
-            } else {
-                auto& names = node->signal_list;
-                names.reserve(signal_list->name().size());
-                for(auto name : signal_list->name())
-                    names.emplace_back(name->getText());
-            }
+std::vector<ast::disconnection_specification*> parse(vhdlParser::Disconnection_specificationContext* ctx, ast::ast_node_factory& anf) {
+    auto spec = ctx->guarded_signal_specification();
+    auto signal_list = spec->signal_list();
+    if(signal_list->KW_OTHERS()) {
+        auto node = anf.create<ast::disconnection_specification>();
+        node->type_mark = spec->type_mark()->getText(); // TODO: parse type_mark
+        node->after_expression = parse(ctx->expression(), anf);
+        node->signal_name = signal_list->KW_OTHERS()->getText();
+        return {node};
+    } else if(signal_list->KW_ALL()) {
+        auto node = anf.create<ast::disconnection_specification>();
+        node->type_mark = spec->type_mark()->getText(); // TODO: parse type_mark
+        node->after_expression = parse(ctx->expression(), anf);
+        node->signal_name = signal_list->KW_ALL()->getText();
+        return {node};
+    } else {
+        std::vector<ast::disconnection_specification*> res;
+        for(auto name : signal_list->name()) {
+            auto node = anf.create<ast::disconnection_specification>();
+            node->type_mark = spec->type_mark()->getText(); // TODO: parse type_mark
+            node->after_expression = parse(ctx->expression(), anf);
+            node->signal_name = name->getText();
         }
-        node->type_mark = spec->type_mark()->getText();
+        return res;
     }
-    node->after_expression = parse(ctx->expression(), anf);
-    return node;
+    throw std::runtime_error("Unsupported signal_list element");
 }
 
 std::vector<ast::entity_declarative_item> parse(vhdlParser::Entity_declarative_itemContext* e, ast::ast_node_factory& anf) {
     std::vector<ast::entity_declarative_item> res;
     if(auto sig = e->signal_declaration()) {
-        res.emplace_back(parse(sig, anf));
+        auto elems = parse(sig, anf);
+        res.insert(res.end(), elems.begin(), elems.end());
     } else if(auto p = e->process_declarative_item()) {
-        auto item = parse(p, anf);
-        std::visit([&res](auto value) { res.emplace_back(value); }, item);
+        for(auto item : parse(p, anf))
+            std::visit([&res](auto value) { res.emplace_back(value); }, item);
     } else if(auto d = e->disconnection_specification()) {
-        res.emplace_back(parse(d, anf));
+        for(auto item : parse(d, anf))
+            res.emplace_back(item);
     }
     return res;
 }
@@ -1020,12 +1048,16 @@ ast::component_declaration* parse(vhdlParser::Component_declarationContext* ctx,
     auto node = anf.create<ast::component_declaration>();
     node->identifier = get_identifier(ctx->identifier(0));
     if(auto generic_clause = ctx->generic_clause()) {
-        for(auto elem : generic_clause->generic_list()->interface_list()->interface_element())
-            node->generic_list.emplace_back(parse(elem, anf));
+        for(auto elem : generic_clause->generic_list()->interface_list()->interface_element()) {
+            auto items = parse(elem, anf);
+            node->generic_list.insert(node->generic_list.end(), items.begin(), items.end());
+        }
     }
     if(auto port_clause = ctx->port_clause()) {
-        for(auto elem : port_clause->port_list()->interface_list()->interface_element())
-            node->port_list.emplace_back(parse(elem, anf));
+        for(auto elem : port_clause->port_list()->interface_list()->interface_element()) {
+            auto items = parse(elem, anf);
+            node->port_list.insert(node->port_list.end(), items.begin(), items.end());
+        }
     }
     return node;
 }
@@ -1036,28 +1068,36 @@ ast::subprogram_declaration* parse(vhdlParser::Subprogram_specificationContext* 
         node->is_function = false;
         node->designator = get_designator(procedure->designator());
         if(auto header = procedure->subprogram_header()) {
-            for(auto elem : header->generic_list()->interface_list()->interface_element())
-                node->generic_list.emplace_back(parse(elem, anf));
+            for(auto elem : header->generic_list()->interface_list()->interface_element()) {
+                auto items = parse(elem, anf);
+                node->generic_list.insert(node->generic_list.end(), items.begin(), items.end());
+            }
             if(auto generic_map = header->generic_map_aspect())
                 node->generic_map = parse(generic_map->association_list(), anf);
         }
         if(auto params = procedure->formal_parameter_list()) {
-            for(auto elem : params->interface_list()->interface_element())
-                node->parameter_list.emplace_back(parse(elem, anf));
+            for(auto elem : params->interface_list()->interface_element()) {
+                auto items = parse(elem, anf);
+                node->parameter_list.insert(node->parameter_list.end(), items.begin(), items.end());
+            }
         }
     } else if(auto function = ctx->function_specification()) {
         node->is_function = true;
         node->designator = get_designator(function->designator());
-        node->return_type = function->type_mark()->getText();
+        node->return_type = function->type_mark()->getText(); // TODO: parse type_mark
         if(auto header = function->subprogram_header()) {
-            for(auto elem : header->generic_list()->interface_list()->interface_element())
-                node->generic_list.emplace_back(parse(elem, anf));
+            for(auto elem : header->generic_list()->interface_list()->interface_element()) {
+                auto items = parse(elem, anf);
+                node->generic_list.insert(node->generic_list.end(), items.begin(), items.end());
+            }
             if(auto generic_map = header->generic_map_aspect())
                 node->generic_map = parse(generic_map->association_list(), anf);
         }
         if(auto params = function->formal_parameter_list()) {
-            for(auto elem : params->interface_list()->interface_element())
-                node->parameter_list.emplace_back(parse(elem, anf));
+            for(auto elem : params->interface_list()->interface_element()) {
+                auto items = parse(elem, anf);
+                node->parameter_list.insert(node->parameter_list.end(), items.begin(), items.end());
+            }
         }
     }
     return node;
@@ -1070,29 +1110,37 @@ ast::subprogram_declaration* parse(vhdlParser::Subprogram_declarationContext* ct
         node->is_function = false;
         node->designator = get_designator(procedure->designator());
         if(auto header = procedure->subprogram_header()) {
-            for(auto elem : header->generic_list()->interface_list()->interface_element())
-                node->generic_list.emplace_back(parse(elem, anf));
+            for(auto elem : header->generic_list()->interface_list()->interface_element()) {
+                auto items = parse(elem, anf);
+                node->generic_list.insert(node->generic_list.end(), items.begin(), items.end());
+            }
             if(auto generic_map = header->generic_map_aspect())
                 node->generic_map = parse(generic_map->association_list(), anf);
         }
         if(auto params = procedure->formal_parameter_list()) {
-            for(auto elem : params->interface_list()->interface_element())
-                node->parameter_list.emplace_back(parse(elem, anf));
+            for(auto elem : params->interface_list()->interface_element()) {
+                auto items = parse(elem, anf);
+                node->parameter_list.insert(node->parameter_list.end(), items.begin(), items.end());
+            }
         }
     }
     if(auto function = subprogram_ctx->function_specification()) {
         node->is_function = true;
         node->designator = get_designator(function->designator());
-        node->return_type = function->type_mark()->getText();
+        node->return_type = function->type_mark()->getText(); // TODO: parse type_mark
         if(auto header = function->subprogram_header()) {
-            for(auto elem : header->generic_list()->interface_list()->interface_element())
-                node->generic_list.emplace_back(parse(elem, anf));
+            for(auto elem : header->generic_list()->interface_list()->interface_element()) {
+                auto items = parse(elem, anf);
+                node->generic_list.insert(node->generic_list.end(), items.begin(), items.end());
+            }
             if(auto generic_map = header->generic_map_aspect())
                 node->generic_map = parse(generic_map->association_list(), anf);
         }
         if(auto params = function->formal_parameter_list()) {
-            for(auto elem : params->interface_list()->interface_element())
-                node->parameter_list.emplace_back(parse(elem, anf));
+            for(auto elem : params->interface_list()->interface_element()) {
+                auto items = parse(elem, anf);
+                node->parameter_list.insert(node->parameter_list.end(), items.begin(), items.end());
+            }
         }
     }
     return node;
@@ -1123,49 +1171,52 @@ ast::subtype_declaration* parse(vhdlParser::Subtype_declarationContext* ctx, ast
     return node;
 }
 
-ast::constant_declaration* parse(vhdlParser::Constant_declarationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::constant_declaration>();
-    const auto& ids = ctx->identifier_list()->identifier();
-    node->identifiers.reserve(ids.size());
-    for(auto id : ids)
-        node->identifiers.emplace_back(get_identifier(id));
-    node->indication = parse(ctx->subtype_indication(), anf);
-    if(auto expr = ctx->expression())
-        node->expr = parse(expr, anf);
-    return node;
-}
-
-ast::variable_declaration* parse(vhdlParser::Variable_declarationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::variable_declaration>();
-    node->shared = ctx->KW_SHARED() != nullptr;
-    const auto& ids = ctx->identifier_list()->identifier();
-    node->identifiers.reserve(ids.size());
-    for(auto id : ids)
-        node->identifiers.emplace_back(get_identifier(id));
-    node->indication = parse(ctx->subtype_indication(), anf);
-    if(auto expr = ctx->expression())
-        node->expr = parse(expr, anf);
-    return node;
-}
-
-ast::file_declaration* parse(vhdlParser::File_declarationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::file_declaration>();
-    const auto& ids = ctx->identifier_list()->identifier();
-    node->identifiers.reserve(ids.size());
-    for(auto id : ids)
-        node->identifiers.emplace_back(get_identifier(id));
-    node->indication = parse(ctx->subtype_indication(), anf);
-    if(auto open_info = ctx->file_open_information()) {
-        if(open_info->KW_OUT())
-            node->dir = ast::file_open_mode_e::OUT;
-        if(open_info->KW_IN())
-            node->dir = ast::file_open_mode_e::IN;
-        if(open_info->KW_OPEN())
-            node->open_expression = parse(open_info->expression(), anf);
-        if(auto logical_name = open_info->file_logical_name())
-            node->file_logical_name = parse(logical_name->expression(), anf);
+std::vector<ast::constant_declaration*> parse(vhdlParser::Constant_declarationContext* ctx, ast::ast_node_factory& anf) {
+    std::vector<ast::constant_declaration*> res;
+    for(auto id : ctx->identifier_list()->identifier()) {
+        auto node = anf.create<ast::constant_declaration>();
+        node->identifier = get_identifier(id);
+        node->indication = parse(ctx->subtype_indication(), anf);
+        if(auto expr = ctx->expression())
+            node->expr = parse(expr, anf);
+        res.push_back(node);
     }
-    return node;
+    return res;
+}
+
+std::vector<ast::variable_declaration*> parse(vhdlParser::Variable_declarationContext* ctx, ast::ast_node_factory& anf) {
+    std::vector<ast::variable_declaration*> res;
+    for(auto id : ctx->identifier_list()->identifier()) {
+        auto node = anf.create<ast::variable_declaration>();
+        node->shared = ctx->KW_SHARED() != nullptr;
+        node->identifier = get_identifier(id);
+        node->indication = parse(ctx->subtype_indication(), anf);
+        if(auto expr = ctx->expression())
+            node->expr = parse(expr, anf);
+        res.push_back(node);
+    }
+    return res;
+}
+
+std::vector<ast::file_declaration*> parse(vhdlParser::File_declarationContext* ctx, ast::ast_node_factory& anf) {
+    std::vector<ast::file_declaration*> res;
+    for(auto id : ctx->identifier_list()->identifier()) {
+        auto node = anf.create<ast::file_declaration>();
+        node->identifier = get_identifier(id);
+        node->indication = parse(ctx->subtype_indication(), anf);
+        if(auto open_info = ctx->file_open_information()) {
+            if(open_info->KW_OUT())
+                node->dir = ast::file_open_mode_e::OUT;
+            if(open_info->KW_IN())
+                node->dir = ast::file_open_mode_e::IN;
+            if(open_info->KW_OPEN())
+                node->open_expression = parse(open_info->expression(), anf);
+            if(auto logical_name = open_info->file_logical_name())
+                node->file_logical_name = parse(logical_name->expression(), anf);
+        }
+        res.push_back(node);
+    }
+    return res;
 }
 
 ast::alias_declaration* parse(vhdlParser::Alias_declarationContext* ctx, ast::ast_node_factory& anf) {
@@ -1175,7 +1226,7 @@ ast::alias_declaration* parse(vhdlParser::Alias_declarationContext* ctx, ast::as
         node->indication = parse(indic, anf);
     node->name = ctx->name()->getText();
     if(auto signature_ctx = ctx->signature()) {
-        const auto& type_marks = signature_ctx->type_mark();
+        const auto& type_marks = signature_ctx->type_mark(); // TODO: parse type_mark
         const auto type_count = type_marks.size();
         const auto has_return = signature_ctx->KW_RETURN() != nullptr;
         const auto parameter_count = has_return && type_count > 0 ? type_count - 1 : type_count;
@@ -1191,7 +1242,7 @@ ast::alias_declaration* parse(vhdlParser::Alias_declarationContext* ctx, ast::as
 ast::attribute_declaration* parse(vhdlParser::Attribute_declarationContext* ctx, ast::ast_node_factory& anf) {
     auto node = anf.create<ast::attribute_declaration>();
     node->identifier = get_identifier(ctx->identifier());
-    node->type_mark = ctx->type_mark()->getText();
+    node->type_mark = ctx->type_mark()->getText(); // TODO: parse type_mark
     return node;
 }
 
@@ -1284,119 +1335,165 @@ ast::group_declaration* parse(vhdlParser::Group_declarationContext* ctx, ast::as
     return node;
 }
 
-ast::package_body_declarative_item parse(vhdlParser::Process_or_package_declarative_itemContext* ctx, ast::ast_node_factory& anf) {
+std::vector<ast::package_body_declarative_item> parse(vhdlParser::Process_or_package_declarative_itemContext* ctx,
+                                                      ast::ast_node_factory& anf) {
+    std::vector<ast::package_body_declarative_item> res;
     if(auto item = ctx->subprogram_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->subprogram_instantiation_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->package_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->package_instantiation_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->type_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->subtype_declaration())
-        return parse(item, anf);
-    if(auto item = ctx->constant_declaration())
-        return parse(item, anf);
-    if(auto item = ctx->variable_declaration())
-        return parse(item, anf);
-    if(auto item = ctx->file_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
+    if(auto item = ctx->constant_declaration()) {
+        std::vector<ast::package_body_declarative_item> res;
+        auto items = parse(item, anf);
+        res.insert(res.end(), items.begin(), items.end());
+        return res;
+    }
+    if(auto item = ctx->variable_declaration()) {
+        std::vector<ast::package_body_declarative_item> res;
+        auto items = parse(item, anf);
+        res.insert(res.end(), items.begin(), items.end());
+        return res;
+    }
+    if(auto item = ctx->file_declaration()) {
+        std::vector<ast::package_body_declarative_item> res;
+        auto items = parse(item, anf);
+        res.insert(res.end(), items.begin(), items.end());
+        return res;
+    }
     if(auto item = ctx->alias_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->attribute_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->attribute_specification())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->use_clause())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->group_template_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->group_declaration())
-        return parse(item, anf);
+        return {parse(item, anf)};
     throw std::runtime_error("Unsupported process_or_package_declarative_item");
 }
 
-ast::process_declarative_item parse(vhdlParser::Process_declarative_itemContext* ctx, ast::ast_node_factory& anf) {
+std::vector<ast::process_declarative_item> parse(vhdlParser::Process_declarative_itemContext* ctx, ast::ast_node_factory& anf) {
     if(auto item = ctx->process_or_package_declarative_item()) {
         if(auto decl = item->subprogram_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->subprogram_instantiation_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->package_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->package_instantiation_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->type_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->subtype_declaration())
-            return parse(decl, anf);
-        if(auto decl = item->constant_declaration())
-            return parse(decl, anf);
-        if(auto decl = item->variable_declaration())
-            return parse(decl, anf);
-        if(auto decl = item->file_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
+        if(auto decl = item->constant_declaration()) {
+            std::vector<ast::package_body_declarative_item> res;
+            auto items = parse(decl, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
+        }
+        if(auto decl = item->variable_declaration()) {
+            std::vector<ast::package_body_declarative_item> res;
+            auto items = parse(decl, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
+        }
+        if(auto decl = item->file_declaration()) {
+            std::vector<ast::package_body_declarative_item> res;
+            auto items = parse(decl, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
+        }
         if(auto decl = item->alias_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->attribute_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->attribute_specification())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->use_clause())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->group_template_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->group_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
     }
     if(auto item = ctx->subprogram_body())
-        return parse(item, anf);
+        return {parse(item, anf)};
     if(auto item = ctx->package_body())
-        return parse(item, anf);
+        return {parse(item, anf)};
     throw std::runtime_error("Unsupported process_declarative_item");
 }
 
-ast::package_declarative_item parse(vhdlParser::Package_declarative_itemContext* ctx, ast::ast_node_factory& anf) {
+std::vector<ast::package_declarative_item> parse(vhdlParser::Package_declarative_itemContext* ctx, ast::ast_node_factory& anf) {
     if(auto item = ctx->process_or_package_declarative_item()) {
         if(auto decl = item->subprogram_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->subprogram_instantiation_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->package_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->package_instantiation_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->type_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->subtype_declaration())
-            return parse(decl, anf);
-        if(auto decl = item->constant_declaration())
-            return parse(decl, anf);
-        if(auto decl = item->variable_declaration())
-            return parse(decl, anf);
-        if(auto decl = item->file_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
+        if(auto decl = item->constant_declaration()) {
+            std::vector<ast::package_declarative_item> res;
+            auto items = parse(decl, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
+        }
+        if(auto decl = item->variable_declaration()) {
+            std::vector<ast::package_declarative_item> res;
+            auto items = parse(decl, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
+        }
+        if(auto decl = item->file_declaration()) {
+            std::vector<ast::package_declarative_item> res;
+            auto items = parse(decl, anf);
+            res.insert(res.end(), items.begin(), items.end());
+            return res;
+        }
         if(auto decl = item->alias_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->attribute_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->attribute_specification())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->use_clause())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->group_template_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
         if(auto decl = item->group_declaration())
-            return parse(decl, anf);
+            return {parse(decl, anf)};
     }
-    if(auto item = ctx->signal_declaration())
-        return parse(item, anf);
+    if(auto item = ctx->signal_declaration()) {
+        std::vector<ast::package_declarative_item> res;
+        auto elems = parse(item, anf);
+        res.insert(res.end(), elems.begin(), elems.end());
+        return res;
+    }
     if(auto item = ctx->component_declaration())
-        return parse(item, anf);
-    if(auto item = ctx->disconnection_specification())
-        return parse(item, anf);
+        return {parse(item, anf)};
+    if(auto item = ctx->disconnection_specification()) {
+        std::vector<ast::package_declarative_item> res;
+        auto elems = parse(item, anf);
+        res.insert(res.end(), elems.begin(), elems.end());
+        return res;
+    }
     throw std::runtime_error("Unsupported package_declarative_item");
 }
 
@@ -1436,21 +1533,25 @@ ast::entity_declaration* parse(vhdlParser::Entity_declarationContext* ctx, ast::
     //       ( KW_BEGIN ( entity_statement )* )?
     //       KW_END ( KW_ENTITY )? ( identifier )? SEMI
     // ;
-    auto n = anf.create<ast::entity_declaration>();
-    n->identifier = ctx->identifier(0)->getText();
+    auto node = anf.create<ast::entity_declaration>();
+    node->identifier = ctx->identifier(0)->getText();
     if(auto generic_clause = ctx->generic_clause()) {
-        for(auto elem : generic_clause->generic_list()->interface_list()->interface_element())
-            n->generic_list.emplace_back(parse(elem, anf));
+        for(auto elem : generic_clause->generic_list()->interface_list()->interface_element()) {
+            auto items = parse(elem, anf);
+            node->generic_list.insert(node->generic_list.end(), items.begin(), items.end());
+        }
     }
     if(auto port_clause = ctx->port_clause()) {
-        for(auto elem : port_clause->port_list()->interface_list()->interface_element())
-            n->port_list.emplace_back(parse(elem, anf));
+        for(auto elem : port_clause->port_list()->interface_list()->interface_element()) {
+            auto items = parse(elem, anf);
+            node->port_list.insert(node->port_list.end(), items.begin(), items.end());
+        }
     }
     for(auto e : ctx->entity_declarative_item()) {
         auto elements = parse(e, anf);
-        n->entity_declarative_items.insert(n->entity_declarative_items.end(), elements.begin(), elements.end());
+        node->entity_declarative_items.insert(node->entity_declarative_items.end(), elements.begin(), elements.end());
     }
-    return n;
+    return node;
 }
 
 ast::generate_specification_item parse(vhdlParser::Generate_specificationContext* ctx, ast::ast_node_factory& anf) {
@@ -1532,13 +1633,17 @@ ast::package_declaration* parse(vhdlParser::Package_declarationContext* ctx, ast
     auto node = anf.create<ast::package_declaration>();
     node->identifier = get_identifier(ctx->identifier(0));
     if(auto generic_clause = ctx->generic_clause()) {
-        for(auto elem : generic_clause->generic_list()->interface_list()->interface_element())
-            node->generic_list.emplace_back(parse(elem, anf));
+        for(auto elem : generic_clause->generic_list()->interface_list()->interface_element()) {
+            auto items = parse(elem, anf);
+            node->generic_list.insert(node->generic_list.end(), items.begin(), items.end());
+        }
     }
     if(auto generic_map = ctx->generic_map_aspect())
         node->generic_map = parse(generic_map->association_list(), anf);
-    for(auto item : ctx->package_declarative_item())
-        node->declarative_items.emplace_back(parse(item, anf));
+    for(auto item : ctx->package_declarative_item()) {
+        auto elems = parse(item, anf);
+        node->declarative_items.insert(node->declarative_items.end(), elems.begin(), elems.end());
+    }
     return node;
 }
 
@@ -1576,31 +1681,35 @@ ast::block_statement* parse(vhdlParser::Block_statementContext* ctx, ast::ast_no
     //          ( concurrent_statement )*
     //      KW_END KW_BLOCK ( label )? SEMI
     // ;
-    auto n = anf.create<ast::block_statement>();
+    auto node = anf.create<ast::block_statement>();
     if(auto condition = ctx->condition())
-        n->condition = parse(condition->expression(), anf);
+        node->condition = parse(condition->expression(), anf);
     auto header = ctx->block_header();
     if(auto generic_clause = header->generic_clause()) {
-        for(auto elem : generic_clause->generic_list()->interface_list()->interface_element())
-            n->generic_list.emplace_back(parse(elem, anf));
+        for(auto elem : generic_clause->generic_list()->interface_list()->interface_element()) {
+            auto items = parse(elem, anf);
+            node->generic_list.insert(node->generic_list.end(), items.begin(), items.end());
+        }
     }
     if(auto port_clause = header->port_clause()) {
-        for(auto elem : port_clause->port_list()->interface_list()->interface_element())
-            n->port_list.emplace_back(parse(elem, anf));
+        for(auto elem : port_clause->port_list()->interface_list()->interface_element()) {
+            auto items = parse(elem, anf);
+            node->port_list.insert(node->port_list.end(), items.begin(), items.end());
+        }
     }
     if(auto generic_map = header->generic_map_aspect())
-        n->generic_map = parse(generic_map->association_list(), anf);
+        node->generic_map = parse(generic_map->association_list(), anf);
     if(auto port_map = header->port_map_aspect())
-        n->port_map = parse(port_map->association_list(), anf);
+        node->port_map = parse(port_map->association_list(), anf);
     if(auto label = ctx->label())
-        n->label = get_label(label);
+        node->label = get_label(label);
     for(auto b : ctx->block_declarative_item()) {
         auto items = parse(b, anf);
-        n->block_declarative_items.insert(n->block_declarative_items.end(), items.begin(), items.end());
+        node->block_declarative_items.insert(node->block_declarative_items.end(), items.begin(), items.end());
     }
     for(auto c : ctx->concurrent_statement())
-        n->concurrent_statements.emplace_back(parse(c, anf));
-    return n;
+        node->concurrent_statements.emplace_back(parse(c, anf));
+    return node;
 }
 
 ast::component_instantiation_statement* parse(vhdlParser::Component_instantiation_statementContext* ctx, ast::ast_node_factory& anf) {
@@ -2077,7 +2186,8 @@ ast::process_statement* parse(vhdlParser::Process_statementContext* ctx, ast::as
     auto declarative_items = ctx->process_declarative_item();
     n->declarative_items.reserve(declarative_items.size());
     for(auto d : declarative_items) {
-        n->declarative_items.emplace_back(parse(d, anf));
+        auto items = parse(d, anf);
+        n->declarative_items.insert(n->declarative_items.end(), items.begin(), items.end());
     }
     for(auto s : ctx->sequential_statement()) {
         n->sequential_statements.emplace_back(parse(s, anf));
@@ -2287,8 +2397,8 @@ ast::subprogram_body* parse(vhdlParser::Subprogram_bodyContext* ctx, ast::ast_no
     node->specification = parse(ctx->subprogram_specification(), anf);
     auto x = parse(ctx->subprogram_specification(), anf);
     for(auto item : ctx->process_declarative_item()) {
-        auto parsed = parse(item, anf);
-        std::visit([node](auto value) { node->declarative_items.emplace_back(value); }, parsed);
+        for(auto parsed : parse(item, anf))
+            std::visit([node](auto value) { node->declarative_items.emplace_back(value); }, parsed);
     }
     for(auto stmt : ctx->sequential_statement())
         node->sequential_statements.emplace_back(parse(stmt, anf));
@@ -2298,8 +2408,10 @@ ast::subprogram_body* parse(vhdlParser::Subprogram_bodyContext* ctx, ast::ast_no
 ast::package_body* parse(vhdlParser::Package_bodyContext* ctx, ast::ast_node_factory& anf) {
     auto node = anf.create<ast::package_body>();
     node->identifier = get_identifier(ctx->identifier(0));
-    for(auto item : ctx->process_declarative_item())
-        node->declarative_items.emplace_back(parse(item, anf));
+    for(auto item : ctx->process_declarative_item()) {
+        for(auto parsed : parse(item, anf))
+            node->declarative_items.emplace_back(parsed);
+    }
     return node;
 }
 
@@ -2317,19 +2429,22 @@ ast::constraint_item parse(vhdlParser::ConstraintContext* ctx, ast::ast_node_fac
     throw std::runtime_error("Unsupported constraint");
 }
 
-ast::signal_declaration* parse(vhdl_antlr::vhdlParser::Signal_declarationContext* ctx, ast::ast_node_factory& anf) {
-    auto node = anf.create<ast::signal_declaration>();
-    for(auto name : ctx->identifier_list()->identifier())
-        node->identifiers.push_back(get_identifier(name));
-    auto subtype = ctx->subtype_indication();
-    if(auto resolution = subtype->resolution_indication())
-        node->resolution = parse(resolution, anf);
-    node->type = subtype->type_mark()->getText();
-    if(auto constraint = subtype->constraint())
-        node->constraint = parse(constraint, anf);
-    node->is_bus = ctx->signal_kind() && ctx->signal_kind()->KW_BUS();
-    node->mode = ast::signal_mode_e::NONE;
-    return node;
+std::vector<ast::signal_declaration*> parse(vhdl_antlr::vhdlParser::Signal_declarationContext* ctx, ast::ast_node_factory& anf) {
+    std::vector<ast::signal_declaration*> res;
+    for(auto name : ctx->identifier_list()->identifier()) {
+        auto node = anf.create<ast::signal_declaration>();
+        node->identifier = get_identifier(name);
+        auto subtype = ctx->subtype_indication();
+        if(auto resolution = subtype->resolution_indication())
+            node->resolution = parse(resolution, anf);
+        node->type = subtype->type_mark()->getText(); // TODO: parse type_mark
+        if(auto constraint = subtype->constraint())
+            node->constraint = parse(constraint, anf);
+        node->is_bus = ctx->signal_kind() && ctx->signal_kind()->KW_BUS();
+        node->mode = ast::signal_mode_e::NONE;
+        res.push_back(node);
+    }
+    return res;
 }
 
 } // namespace context

@@ -26,6 +26,7 @@ struct elaborator {
 
 private:
     friend struct reference_resolver;
+    friend struct linker;
     void populate_std_packages();
     void add_diagnostic(elaboration_diagnostic::severity_e severity, std::string message);
     // void link_primary_and_secondary_units();

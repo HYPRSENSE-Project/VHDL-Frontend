@@ -438,7 +438,7 @@ struct record_constraint {
 };
 
 struct signal_declaration {
-    std::vector<std::string> identifiers;
+    std::string identifier;
     signal_mode_e mode{ast::signal_mode_e::NONE};
     resolution_indication* resolution;
     std::string type;
@@ -595,7 +595,7 @@ struct constrained_array_definition {
 };
 
 struct element_declaration {
-    std::vector<std::string> identifier_list;
+    std::string identifier;
     subtype_indication* element_subtype_definition;
 };
 
@@ -639,20 +639,20 @@ struct subtype_declaration {
 };
 
 struct constant_declaration {
-    std::vector<std::string> identifiers;
+    std::string identifier;
     subtype_indication* indication;
     expression_item expr;
 };
 
 struct variable_declaration {
     bool shared;
-    std::vector<std::string> identifiers;
+    std::string identifier;
     subtype_indication* indication;
     expression_item expr;
 };
 
 struct file_declaration {
-    std::vector<std::string> identifiers;
+    std::string identifier;
     subtype_indication* indication;
     // file_open_information
     expression_item open_expression;
@@ -681,14 +681,14 @@ struct attribute_declaration {
 };
 
 struct interface_constant_declaration {
-    std::vector<std::string> identifier_list;
+    std::string identifier;
     bool is_in{false};
     subtype_indication* subtype_indic;
     expression_item expression;
 };
 
 struct interface_signal_declaration {
-    std::vector<std::string> identifier_list;
+    std::string identifier;
     signal_mode_e signal_mode{signal_mode_e::NONE};
     subtype_indication* subtype_indic;
     bool is_bus{false};
@@ -696,7 +696,7 @@ struct interface_signal_declaration {
 };
 
 struct interface_variable_declaration {
-    std::vector<std::string> identifier_list;
+    std::string identifier;
     signal_mode_e signal_mode{signal_mode_e::NONE};
     subtype_indication* subtype_indic;
     expression_item expression;
@@ -707,7 +707,7 @@ struct interface_type_declaration {
 };
 
 struct interface_file_declaration {
-    std::vector<std::string> identifier_list;
+    std::string identifier;
     subtype_indication* subtype_indic;
 };
 
@@ -787,11 +787,11 @@ struct package_body {
 };
 
 struct disconnection_specification {
-    std::vector<std::string> signal_list;
+    std::string signal_name;
     std::string type_mark;
     expression_item after_expression;
     // elaborated members
-    std::vector<declaration_ref> signal_refs;
+    declaration_ref signal_ref;
     declaration_ref type_ref;
 };
 

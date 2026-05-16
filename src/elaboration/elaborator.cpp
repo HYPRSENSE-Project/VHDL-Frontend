@@ -1,4 +1,5 @@
 #include "elaborator.h"
+#include "linker.h"
 #include "resolver.h"
 #include <array>
 #include <cctype>
@@ -35,7 +36,7 @@ ast::architecture_body* elaborator::find_architecture(const std::string& lib_nam
 
     if(architecture_name.empty()) {
         auto it = architectures_by_entity_key.find(make_key(lib, entity));
-        if(it != architectures_by_entity_key.end() || it->second.empty())
+        if(it != architectures_by_entity_key.end() && !it->second.empty())
             return it->second.back();
         add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("cannot resolve architecture for entity ") + entity_name);
         return nullptr;
@@ -170,8 +171,8 @@ void elaborator::add_design_files(std::vector<ast::design_file*> const& file_set
 
 void elaborator::resolve_references() {
     instantiated_entities.clear();
-    reference_resolver resolver(*this);
-    resolver.run();
+    reference_resolver(*this).run();
+    linker(*this).run();
 }
 
 std::vector<ast::entity_declaration*> elaborator::get_top_modules() const {
@@ -257,7 +258,7 @@ void elaborator::populate_std_packages() {
     pd_textio->declarative_items.push_back(funct_decl);
     for(auto i : {"INPUT", "OUTPUT"}) {
         auto file_decl = parser.anf.create<ast::file_declaration>();
-        file_decl->identifiers.push_back(i);
+        file_decl->identifier = i;
         pd_textio->declarative_items.push_back(file_decl);
     }
     for(auto i : {"READLINE", "OREAD", "HREAD", "WRITELINE", "TEE", "WRITE", "OWRITE", "HWRITE"}) {

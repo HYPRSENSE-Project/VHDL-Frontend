@@ -26,7 +26,7 @@ void print_object(std::ostream& os, const ast::interface_declaration_item& item)
                                 std::is_same_v<T, ast::interface_signal_declaration> ||
                                 std::is_same_v<T, ast::interface_variable_declaration> ||
                                 std::is_same_v<T, ast::interface_file_declaration>) {
-                print_string_list(os, decl->identifier_list);
+                os << decl->identifier;
                 if(decl->subtype_indic && !decl->subtype_indic->type.empty())
                     os << " : " << decl->subtype_indic->type;
             } else if constexpr(std::is_same_v<T, ast::constant_declaration> || std::is_same_v<T, ast::variable_declaration> ||

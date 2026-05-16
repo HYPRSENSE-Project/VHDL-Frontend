@@ -24,7 +24,7 @@ ast::concurrent_assertion_statement* parse(vhdl_antlr::vhdlParser::Concurrent_as
 ast::concurrent_statement* parse(vhdl_antlr::vhdlParser::Concurrent_statement_with_optional_labelContext*, ast::ast_node_factory&);
 ast::concurrent_statement* parse(vhdl_antlr::vhdlParser::Concurrent_statementContext*, ast::ast_node_factory&);
 ast::package_body* parse(vhdl_antlr::vhdlParser::Package_bodyContext*, ast::ast_node_factory&);
-ast::signal_declaration* parse(vhdl_antlr::vhdlParser::Signal_declarationContext*, ast::ast_node_factory&);
+std::vector<ast::signal_declaration*> parse(vhdl_antlr::vhdlParser::Signal_declarationContext*, ast::ast_node_factory&);
 ast::explicit_range* parse(vhdl_antlr::vhdlParser::Explicit_rangeContext*, ast::ast_node_factory&);
 ast::attribute_range* parse(vhdl_antlr::vhdlParser::Attribute_nameContext*, ast::ast_node_factory&);
 ast::subtype_indication* parse(vhdl_antlr::vhdlParser::Subtype_indicationContext*, ast::ast_node_factory&);
@@ -43,7 +43,7 @@ std::vector<ast::association_element*> parse(vhdl_antlr::vhdlParser::Association
 void parse(vhdl_antlr::vhdlParser::Generate_statement_bodyContext*, ast::generate_statement_body&, ast::ast_node_factory&);
 std::vector<ast::choice_item> parse(vhdl_antlr::vhdlParser::ChoicesContext*, ast::ast_node_factory&);
 void parse(vhdl_antlr::vhdlParser::Generate_statement_body_with_begin_endContext*, ast::generate_statement_body&, ast::ast_node_factory&);
-ast::interface_declaration_item parse(vhdl_antlr::vhdlParser::Interface_elementContext*, ast::ast_node_factory&);
+std::vector<ast::interface_declaration_item> parse(vhdl_antlr::vhdlParser::Interface_elementContext*, ast::ast_node_factory&);
 ast::primary_item parse(vhdl_antlr::vhdlParser::PrimaryContext*, ast::ast_node_factory&);
 ast::component_declaration* parse(vhdl_antlr::vhdlParser::Component_declarationContext* ctx, ast::ast_node_factory& anf);
 ast::subprogram_declaration* parse(vhdl_antlr::vhdlParser::Subprogram_declarationContext* ctx, ast::ast_node_factory& anf);
@@ -51,11 +51,15 @@ ast::subprogram_instantiation_declaration* parse(vhdl_antlr::vhdlParser::Subprog
                                                  ast::ast_node_factory& anf);
 ast::type_declaration* parse(vhdl_antlr::vhdlParser::Type_declarationContext* ctx, ast::ast_node_factory& anf);
 ast::subtype_declaration* parse(vhdl_antlr::vhdlParser::Subtype_declarationContext* ctx, ast::ast_node_factory& anf);
-ast::constant_declaration* parse(vhdl_antlr::vhdlParser::Constant_declarationContext* ctx, ast::ast_node_factory& anf);
-ast::interface_constant_declaration* parse(vhdl_antlr::vhdlParser::Interface_constant_declarationContext* ctx, ast::ast_node_factory& anf);
-ast::interface_signal_declaration* parse(vhdl_antlr::vhdlParser::Interface_signal_declarationContext* ctx, ast::ast_node_factory& anf);
-ast::interface_variable_declaration* parse(vhdl_antlr::vhdlParser::Interface_variable_declarationContext* ctx, ast::ast_node_factory& anf);
-ast::interface_file_declaration* parse(vhdl_antlr::vhdlParser::Interface_file_declarationContext* ctx, ast::ast_node_factory& anf);
+std::vector<ast::constant_declaration*> parse(vhdl_antlr::vhdlParser::Constant_declarationContext* ctx, ast::ast_node_factory& anf);
+std::vector<ast::interface_constant_declaration*> parse(vhdl_antlr::vhdlParser::Interface_constant_declarationContext* ctx,
+                                                        ast::ast_node_factory& anf);
+std::vector<ast::interface_signal_declaration*> parse(vhdl_antlr::vhdlParser::Interface_signal_declarationContext* ctx,
+                                                      ast::ast_node_factory& anf);
+std::vector<ast::interface_variable_declaration*> parse(vhdl_antlr::vhdlParser::Interface_variable_declarationContext* ctx,
+                                                        ast::ast_node_factory& anf);
+std::vector<ast::interface_file_declaration*> parse(vhdl_antlr::vhdlParser::Interface_file_declarationContext* ctx,
+                                                    ast::ast_node_factory& anf);
 ast::interface_type_declaration* parse(vhdl_antlr::vhdlParser::Interface_type_declarationContext* ctx, ast::ast_node_factory& anf);
 ast::interface_procedure_specification* parse(vhdl_antlr::vhdlParser::Interface_procedure_specificationContext* ctx,
                                               ast::ast_node_factory& anf);
@@ -63,18 +67,18 @@ ast::interface_function_specification* parse(vhdl_antlr::vhdlParser::Interface_f
                                              ast::ast_node_factory& anf);
 ast::interface_subprogram_declaration* parse(vhdl_antlr::vhdlParser::Interface_subprogram_declarationContext* ctx,
                                              ast::ast_node_factory& anf);
-ast::variable_declaration* parse(vhdl_antlr::vhdlParser::Variable_declarationContext* ctx, ast::ast_node_factory& anf);
-ast::file_declaration* parse(vhdl_antlr::vhdlParser::File_declarationContext* ctx, ast::ast_node_factory& anf);
+std::vector<ast::variable_declaration*> parse(vhdl_antlr::vhdlParser::Variable_declarationContext* ctx, ast::ast_node_factory& anf);
+std::vector<ast::file_declaration*> parse(vhdl_antlr::vhdlParser::File_declarationContext* ctx, ast::ast_node_factory& anf);
 ast::alias_declaration* parse(vhdl_antlr::vhdlParser::Alias_declarationContext* ctx, ast::ast_node_factory& anf);
 ast::attribute_declaration* parse(vhdl_antlr::vhdlParser::Attribute_declarationContext* ctx, ast::ast_node_factory& anf);
 ast::attribute_specification* parse(vhdl_antlr::vhdlParser::Attribute_specificationContext* ctx, ast::ast_node_factory& anf);
 ast::group_template_declaration* parse(vhdl_antlr::vhdlParser::Group_template_declarationContext* ctx, ast::ast_node_factory& anf);
 ast::group_declaration* parse(vhdl_antlr::vhdlParser::Group_declarationContext* ctx, ast::ast_node_factory& anf);
 ast::subprogram_body* parse(vhdl_antlr::vhdlParser::Subprogram_bodyContext* ctx, ast::ast_node_factory& anf);
-ast::package_body_declarative_item parse(vhdl_antlr::vhdlParser::Process_or_package_declarative_itemContext* ctx,
-                                         ast::ast_node_factory& anf);
-ast::process_declarative_item parse(vhdl_antlr::vhdlParser::Process_declarative_itemContext* ctx, ast::ast_node_factory& anf);
-ast::package_declarative_item parse(vhdl_antlr::vhdlParser::Package_declarative_itemContext* ctx, ast::ast_node_factory& anf);
+std::vector<ast::package_body_declarative_item> parse(vhdl_antlr::vhdlParser::Process_or_package_declarative_itemContext* ctx,
+                                                      ast::ast_node_factory& anf);
+std::vector<ast::process_declarative_item> parse(vhdl_antlr::vhdlParser::Process_declarative_itemContext* ctx, ast::ast_node_factory& anf);
+std::vector<ast::package_declarative_item> parse(vhdl_antlr::vhdlParser::Package_declarative_itemContext* ctx, ast::ast_node_factory& anf);
 ast::simple_expression* parse(vhdl_antlr::vhdlParser::Simple_expressionContext* ctx, ast::ast_node_factory& anf);
 std::vector<ast::waveform_element*> parse(vhdl_antlr::vhdlParser::WaveformContext* ctx, ast::ast_node_factory& anf);
 std::vector<ast::conditional_waveform_element*> parse(vhdl_antlr::vhdlParser::Conditional_waveformsContext* ctx,

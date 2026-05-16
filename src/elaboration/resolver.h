@@ -1,10 +1,8 @@
 #include "elaborator.h"
 #include <algorithm>
-#include <array>
 #include <cctype>
 #include <sstream>
 #include <string_view>
-#include <tuple>
 #include <type_traits>
 
 namespace vhdl_fe {
@@ -433,8 +431,7 @@ struct reference_resolver {
                 if constexpr(std::is_same_v<T, ast::interface_constant_declaration> ||
                              std::is_same_v<T, ast::interface_signal_declaration> ||
                              std::is_same_v<T, ast::interface_variable_declaration> || std::is_same_v<T, ast::interface_file_declaration>) {
-                    for(const auto& id : node->identifier_list)
-                        insert(sc, id, node);
+                    insert(sc, node->identifier, node);
                 } else if constexpr(std::is_same_v<T, ast::interface_type_declaration> ||
                                     std::is_same_v<T, ast::interface_package_declaration>) {
                     insert(sc, node->identifier, node);
@@ -462,8 +459,7 @@ struct reference_resolver {
                     return;
                 using T = std::decay_t<decltype(*node)>;
                 if constexpr(std::is_same_v<T, ast::signal_declaration>) {
-                    for(auto& name : node->identifiers)
-                        insert(sc, name, node);
+                    insert(sc, node->identifier, node);
                 } else if constexpr(std::is_same_v<T, ast::component_declaration>) {
                     insert(sc, node->identifier, node);
                 } else if constexpr(std::is_same_v<T, ast::subprogram_declaration>) {
@@ -498,8 +494,7 @@ struct reference_resolver {
                     insert(sc, node->identifier, node);
                 } else if constexpr(std::is_same_v<T, ast::constant_declaration> || std::is_same_v<T, ast::variable_declaration> ||
                                     std::is_same_v<T, ast::file_declaration>) {
-                    for(const auto& id : node->identifiers)
-                        insert(sc, id, node);
+                    insert(sc, node->identifier, node);
                 } else if constexpr(std::is_same_v<T, ast::alias_declaration>) {
                     insert(sc, node->alias_designator, node);
                 } else if constexpr(std::is_same_v<T, ast::configuration_specification>) {
@@ -602,9 +597,7 @@ struct reference_resolver {
                     for(const auto& name : node->group_constituent_list)
                         node->constituent_refs.push_back(lookup(sc, name));
                 } else if constexpr(std::is_same_v<T, ast::disconnection_specification>) {
-                    node->signal_refs.clear();
-                    for(const auto& name : node->signal_list)
-                        node->signal_refs.push_back(lookup(sc, name));
+                    node->signal_ref = lookup(sc, node->signal_name);
                     node->type_ref = lookup(sc, node->type_mark);
                     resolve_expression(sc, node->after_expression);
                 } else if constexpr(std::is_same_v<T, ast::subprogram_declaration>) {
