@@ -1,5 +1,5 @@
-#include "ast/ast_nodes.h"
-#include <ast/ast_node_factory.h>
+#include <ast_node_factory.h>
+#include <ast_nodes.h>
 #include <vhdlParser/vhdlParser.h>
 namespace parser {
 namespace context {

@@ -6,6 +6,8 @@
 
 namespace ast {
 
+struct ast_node_factory;
+
 enum class direction_e { TO, DOWNTO };
 
 enum class file_open_mode_e { UNDEF, IN, OUT };
@@ -909,6 +911,7 @@ struct component_instantiation_statement {
     entity_declaration* entity_ref{nullptr};
     architecture_body* architecture_ref{nullptr};
     configuration_declaration* configuration_ref{nullptr};
+    component_instantiation_statement* clone(ast_node_factory& anf);
 };
 
 struct generate_statement_body {
@@ -1038,6 +1041,8 @@ struct architecture_body {
     std::vector<ast::use_clause*> packages_in_scope;
     design_file* my_file;
     entity_declaration* primary_ref{nullptr};
+
+    architecture_body* clone(ast_node_factory&);
 };
 
 struct design_file {

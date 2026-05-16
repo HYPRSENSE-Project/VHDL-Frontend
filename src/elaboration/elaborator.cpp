@@ -1,10 +1,7 @@
 #include "elaborator.h"
 #include "resolver.h"
-#include <algorithm>
 #include <array>
 #include <cctype>
-#include <sstream>
-#include <string_view>
 #include <tuple>
 #include <type_traits>
 
@@ -50,6 +47,16 @@ ast::architecture_body* elaborator::find_architecture(const std::string& lib_nam
     add_diagnostic(elaboration_diagnostic::severity_e::ERROR,
                    std::string("cannot resolve architecture ") + architecture_name + " of entity " + entity_name);
     return nullptr;
+}
+
+std::vector<ast::architecture_body*> elaborator::find_architectures_for_entity(const std::string& lib_name,
+                                                                               const std::string& entity_name) {
+    auto [lib, entity] = library_and_design_name(lib_name, entity_name);
+    auto it = architectures_by_entity_key.find(make_key(lib, entity));
+    if(it != architectures_by_entity_key.end())
+        return it->second;
+    add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("cannot find any architecture for entity ") + entity_name);
+    return {};
 }
 
 ast::configuration_declaration* elaborator::find_configuration(const std::string& lib_name, const std::string& name) {

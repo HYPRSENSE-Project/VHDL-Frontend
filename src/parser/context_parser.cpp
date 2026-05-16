@@ -1,12 +1,11 @@
 #include "context_parser.h"
-#include "ast/ast_node_factory.h"
 #include "vhdlParser/vhdlParser.h"
 #include <algorithm>
-#include <ast/ast_nodes.h>
+#include <ast_node_factory.h>
+#include <ast_nodes.h>
 #include <not_implemented_logger.h>
 #include <sstream>
 #include <stdexcept>
-#include <type_traits>
 
 namespace parser {
 namespace context {

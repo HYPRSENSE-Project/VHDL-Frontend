@@ -33,6 +33,7 @@ private:
     ast::entity_declaration* find_entity(const std::string& lib_name, const std::string& name);
     ast::architecture_body* find_architecture(const std::string& lib_name, const std::string& entity_name,
                                               const std::string& architecture_name);
+    std::vector<ast::architecture_body*> find_architectures_for_entity(const std::string& lib_name, const std::string& entity_name);
     ast::configuration_declaration* find_configuration(const std::string& lib_name, const std::string& name);
     ast::package_declaration* find_package(const std::string& lib_name, const std::string& name);
     ast::context_declaration* find_context(const std::string& lib_name, const std::string& name);
