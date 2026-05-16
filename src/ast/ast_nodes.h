@@ -436,7 +436,7 @@ struct record_constraint {
 };
 
 struct signal_declaration {
-    std::string name;
+    std::vector<std::string> identifiers;
     signal_mode_e mode{ast::signal_mode_e::NONE};
     resolution_indication* resolution;
     std::string type;
@@ -1037,7 +1037,7 @@ struct architecture_body {
     // elaborated members
     std::vector<ast::use_clause*> packages_in_scope;
     design_file* my_file;
-    entity_declaration* entity_ref{nullptr};
+    entity_declaration* primary_ref{nullptr};
 };
 
 struct design_file {

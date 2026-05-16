@@ -2320,8 +2320,8 @@ ast::constraint_item parse(vhdlParser::ConstraintContext* ctx, ast::ast_node_fac
 
 ast::signal_declaration* parse(vhdl_antlr::vhdlParser::Signal_declarationContext* ctx, ast::ast_node_factory& anf) {
     auto node = anf.create<ast::signal_declaration>();
-    if(auto ids = ctx->identifier_list()->identifier(); !ids.empty())
-        node->name = get_identifier(ids.front());
+    for(auto name : ctx->identifier_list()->identifier())
+        node->identifiers.push_back(get_identifier(name));
     auto subtype = ctx->subtype_indication();
     if(auto resolution = subtype->resolution_indication())
         node->resolution = parse(resolution, anf);
