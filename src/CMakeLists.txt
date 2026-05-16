@@ -1,13 +1,7 @@
 add_subdirectory(grammar)
 add_subdirectory(ast)
 add_subdirectory(parser)
-
-add_library(elaboration
-    elaborator.cpp
-)
-target_include_directories(elaboration PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(elaboration PUBLIC vhdl_fe::parser)
-add_library(vhdl_fe::elaboration ALIAS elaboration)
+add_subdirectory(elaboration)
 
 add_executable(vhdl_fe
     main.cpp
