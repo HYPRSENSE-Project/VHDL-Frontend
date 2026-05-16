@@ -70,3 +70,90 @@ TEST_CASE("001_minimal", "[single-file][single-instance]") {
     REQUIRE(source != nullptr);
     REQUIRE(source->text == "a");
 }
+
+TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
+    parser::Parser parser;
+    auto const root_path = std::filesystem::path(__FILE__).parent_path().parent_path();
+    std::vector<ast::design_file*> files;
+    for(auto i : std::array<std::string, 3>{
+            "tests/zamiacad/examples/add4/add4.vhdl",
+            "tests/zamiacad/examples/add4/ha.vhdl",
+            "tests/zamiacad/examples/add4/va.vhdl"}) {
+        files.push_back(parser.parse_file(root_path / i, parser::encoding::UTF_8, "work"));
+    }
+    vhdl_fe::elaborator elab(parser);
+    elab.add_design_files({files});
+    elab.resolve_references();
+    auto diags = elab.get_diagnostics();
+    REQUIRE(diags.size() == 0);
+
+    auto top_units = elab.get_top_modules();
+    REQUIRE(top_units.size() == 1);
+    REQUIRE(top_units[0]->identifier == "add4");
+    REQUIRE(top_units[0]->port_list.size() == 5);
+    REQUIRE(top_units[0]->architectures.size() == 1);
+
+    auto const* input_a = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[0]);
+    REQUIRE(input_a != nullptr);
+    REQUIRE(input_a->identifier_list.size() == 1);
+    REQUIRE(input_a->identifier_list[0] == "A");
+    REQUIRE(input_a->signal_mode == ast::signal_mode_e::IN);
+    REQUIRE(input_a->subtype_indic != nullptr);
+    REQUIRE(input_a->subtype_indic->type == "bit_vector");
+
+    auto const* input_b = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[1]);
+    REQUIRE(input_b != nullptr);
+    REQUIRE(input_b->identifier_list.size() == 1);
+    REQUIRE(input_b->identifier_list[0] == "B");
+    REQUIRE(input_b->signal_mode == ast::signal_mode_e::IN);
+    REQUIRE(input_b->subtype_indic != nullptr);
+    REQUIRE(input_b->subtype_indic->type == "bit_vector");
+
+    auto const* carry_in = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[2]);
+    REQUIRE(carry_in != nullptr);
+    REQUIRE(carry_in->identifier_list.size() == 1);
+    REQUIRE(carry_in->identifier_list[0] == "C_in");
+    REQUIRE(carry_in->signal_mode == ast::signal_mode_e::IN);
+    REQUIRE(carry_in->subtype_indic != nullptr);
+    REQUIRE(carry_in->subtype_indic->type == "bit");
+
+    auto const* sum = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[3]);
+    REQUIRE(sum != nullptr);
+    REQUIRE(sum->identifier_list.size() == 1);
+    REQUIRE(sum->identifier_list[0] == "S");
+    REQUIRE(sum->signal_mode == ast::signal_mode_e::OUT);
+    REQUIRE(sum->subtype_indic != nullptr);
+    REQUIRE(sum->subtype_indic->type == "bit_vector");
+
+    auto const* carry_out = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[4]);
+    REQUIRE(carry_out != nullptr);
+    REQUIRE(carry_out->identifier_list.size() == 1);
+    REQUIRE(carry_out->identifier_list[0] == "C");
+    REQUIRE(carry_out->signal_mode == ast::signal_mode_e::OUT);
+    REQUIRE(carry_out->subtype_indic != nullptr);
+    REQUIRE(carry_out->subtype_indic->type == "bit");
+
+    auto const* arch = top_units[0]->architectures[0];
+    REQUIRE(arch != nullptr);
+    REQUIRE(arch->identifier == "STRUCTURE");
+    REQUIRE(arch->primary == "add4");
+    REQUIRE(arch->concurrent_statements.size() == 4);
+
+    for(std::size_t i = 0; i < arch->concurrent_statements.size(); ++i) {
+        auto const* stmt = arch->concurrent_statements[i];
+        REQUIRE(stmt != nullptr);
+        REQUIRE(stmt->label == "va" + std::to_string(i));
+
+        auto const* inst = std::get<ast::component_instantiation_statement*>(stmt->statement);
+        REQUIRE(inst != nullptr);
+        REQUIRE(inst->unit_kind == ast::instantiated_unit_kind_e::COMPONENT);
+        REQUIRE(inst->unit_name == "full_adder");
+        REQUIRE(inst->generic_map.empty());
+        REQUIRE(inst->port_map.size() == 5);
+        REQUIRE(inst->component_ref != nullptr);
+        REQUIRE(inst->entity_ref != nullptr);
+        REQUIRE(inst->entity_ref->identifier == "full_adder");
+        REQUIRE(inst->architecture_ref != nullptr);
+        REQUIRE(inst->architecture_ref->identifier == "STRUCTURE");
+    }
+}
