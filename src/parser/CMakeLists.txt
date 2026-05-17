@@ -1,6 +1,5 @@
 add_library(parser
     encoding_conversions.cpp
-    not_implemented_logger.cpp
     syntax_error_logger.cpp
     context_parser.cpp
 )

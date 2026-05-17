@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <ast_node_factory.h>
 #include <ast_nodes.h>
-#include <not_implemented_logger.h>
 #include <sstream>
 #include <stdexcept>
 
