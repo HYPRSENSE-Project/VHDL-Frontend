@@ -20,7 +20,7 @@ void add_ieee_packages(parser::parser& parser, std::vector<ast::design_file*>& f
 TEST_CASE("001_minimal", "[single-file][single-instance]") {
     parser::parser parser;
     std::vector<ast::design_file*> files;
-    files.push_back(parser.parse_file(my_path / "minimal/valid/basic/001_minimal.vhd", parser::encoding::UTF_8, "work"));
+    files.push_back(parser.parse_file(my_path / "inputs/elaboration/basic/001_minimal.vhd", parser::encoding::UTF_8, "work"));
     add_ieee_packages(parser, files);
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files({files});
@@ -83,7 +83,8 @@ TEST_CASE("001_minimal", "[single-file][single-instance]") {
 TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
     parser::parser parser;
     std::vector<ast::design_file*> files;
-    for(auto i : std::array<std::string, 3>{"zamiacad/add4/add4.vhdl", "zamiacad/add4/ha.vhdl", "zamiacad/add4/va.vhdl"}) {
+    for(auto i : std::array<std::string, 3>{"inputs/elaboration/add4/add4.vhdl", "inputs/elaboration/add4/ha.vhdl",
+                                            "inputs/elaboration/add4/va.vhdl"}) {
         files.push_back(parser.parse_file(my_path / i, parser::encoding::UTF_8, "work"));
     }
     add_ieee_packages(parser, files);
