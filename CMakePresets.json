@@ -27,6 +27,15 @@
       }
     },
     {
+      "name": "DebugExt",
+      "inherits": "Base",
+      "displayName": "Debug build with external parser",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "EXTERNAL_HDLCONVERTOR": "ON"
+      }
+    },
+    {
       "name": "RelWithDebInfo",
       "inherits": "Base",
       "displayName": "RelWithDebInfo build",
