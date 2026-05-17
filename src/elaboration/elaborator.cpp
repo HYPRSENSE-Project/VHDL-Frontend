@@ -12,7 +12,7 @@
 
 namespace vhdl_fe {
 
-elaborator::elaborator(parser::Parser& p)
+elaborator::elaborator(parser::parser& p)
 : parser(p) {
     populate_std_packages();
 }

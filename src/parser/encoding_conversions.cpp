@@ -47,7 +47,7 @@ std::string _to_utf8(const std::string& str, encoding enc) {
     }
 }
 
-antlr4::ANTLRInputStream ANTLRFileStream_with_encoding(const std::filesystem::path& file_name, encoding enc) {
+antlr4::ANTLRInputStream antlr_file_stream_with_encoding(const std::filesystem::path& file_name, encoding enc) {
     std::ifstream ifs;
     std::string str;
     ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit);

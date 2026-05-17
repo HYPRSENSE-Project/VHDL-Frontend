@@ -21,7 +21,7 @@ struct elaboration_diagnostic {
 };
 
 struct elaborator {
-    elaborator(parser::Parser& p);
+    elaborator(parser::parser& p);
 
     void add_design_files(std::vector<ast::design_file*> const&);
     void resolve_references();
@@ -43,7 +43,7 @@ private:
     ast::package_declaration* find_package(const std::string& lib_name, const std::string& name);
     ast::context_declaration* find_context(const std::string& lib_name, const std::string& name);
 
-    parser::Parser& parser;
+    parser::parser& parser;
 
     std::unordered_map<std::string, std::vector<ast::design_file*>> files_by_lib;
     std::vector<ast::unit_item> primary_units;

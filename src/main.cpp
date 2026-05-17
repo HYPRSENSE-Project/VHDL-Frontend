@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     bool enable_print_ast = false;
-    parser::Parser parser;
+    parser::parser parser;
     std::vector<ast::design_file*> results;
     std::string actual_libname = "work";
     auto syntax_error_count = 0u;

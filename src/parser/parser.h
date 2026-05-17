@@ -14,8 +14,8 @@
 
 namespace parser {
 using namespace vhdl_antlr;
-struct Parser {
-    SyntaxErrorLogger syntaxErrLogger;
+struct parser {
+    syntax_error_logger syntaxErrLogger;
     ast::ast_node_factory anf;
 
     /*
@@ -23,7 +23,7 @@ struct Parser {
      *                 otherwise specified context is used
      * */
     ast::design_file* parse_file(const std::filesystem::path& file_name, encoding enc, std::string lib_name) {
-        auto input_stream = ANTLRFileStream_with_encoding(file_name, enc);
+        auto input_stream = antlr_file_stream_with_encoding(file_name, enc);
         input_stream.name = file_name.u8string();
         return _parse(input_stream, lib_name);
     }

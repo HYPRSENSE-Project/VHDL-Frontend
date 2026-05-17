@@ -3,7 +3,6 @@
 // Copyright (c) 2015 Nic30
 
 #include "syntax_error_logger.h"
-#include "conversion_exception.h"
 #include <antlr4-runtime.h>
 #include <assert.h>
 
@@ -17,10 +16,10 @@ namespace parser {
 
 using namespace std;
 
-SyntaxErrorLogger::SyntaxErrorLogger()
+syntax_error_logger::syntax_error_logger()
 : antlr4::ANTLRErrorListener() {}
 
-void SyntaxErrorLogger::check_errors() {
+void syntax_error_logger::check_errors() {
     stringstream error_msg;
     error_msg << endl;
     for(auto& e : _errors) {
@@ -28,14 +27,14 @@ void SyntaxErrorLogger::check_errors() {
                   << " SyntaxError:" << e.message << endl;
     }
     if(_errors.size() > 0) {
-        throw ParseException(error_msg.str());
+        throw parse_exception(error_msg.str());
     }
 }
 
-void SyntaxErrorLogger::syntaxError(antlr4::Recognizer* recognizer, antlr4::Token* UNUSED(offendingSymbol), size_t line,
-                                    size_t charPositionInLine, const string& msg, exception_ptr UNUSED(e)) {
+void syntax_error_logger::syntaxError(antlr4::Recognizer* recognizer, antlr4::Token* UNUSED(offendingSymbol), size_t line,
+                                      size_t charPositionInLine, const string& msg, exception_ptr UNUSED(e)) {
 
-    ErrorData err;
+    error_data err;
     // use offsets and overrides from file_line_map if available
     err.line = line;
     err.filename = recognizer->getInputStream()->getSourceName();
@@ -47,22 +46,22 @@ void SyntaxErrorLogger::syntaxError(antlr4::Recognizer* recognizer, antlr4::Toke
     // "\n";
 }
 
-void SyntaxErrorLogger::reportAmbiguity(antlr4::Parser* UNUSED(recognizer), const antlr4::dfa::DFA& UNUSED(dfa), size_t UNUSED(startIndex),
-                                        size_t UNUSED(stopIndex), bool UNUSED(exact), const antlrcpp::BitSet& UNUSED(ambigAlts),
-                                        antlr4::atn::ATNConfigSet* UNUSED(configs)) {
+void syntax_error_logger::reportAmbiguity(antlr4::Parser* UNUSED(recognizer), const antlr4::dfa::DFA& UNUSED(dfa),
+                                          size_t UNUSED(startIndex), size_t UNUSED(stopIndex), bool UNUSED(exact),
+                                          const antlrcpp::BitSet& UNUSED(ambigAlts), antlr4::atn::ATNConfigSet* UNUSED(configs)) {
     // cerr << ":Ambiguity:" << std::endl;
 }
 
-void SyntaxErrorLogger::reportContextSensitivity(antlr4::Parser* UNUSED(recognizer), const antlr4::dfa::DFA& UNUSED(dfa),
-                                                 size_t UNUSED(startIndex), size_t UNUSED(stopIndex), size_t UNUSED(prediction),
-                                                 antlr4::atn::ATNConfigSet* UNUSED(configs)) {
+void syntax_error_logger::reportContextSensitivity(antlr4::Parser* UNUSED(recognizer), const antlr4::dfa::DFA& UNUSED(dfa),
+                                                   size_t UNUSED(startIndex), size_t UNUSED(stopIndex), size_t UNUSED(prediction),
+                                                   antlr4::atn::ATNConfigSet* UNUSED(configs)) {
     // cerr << ":ContextSensitivity:" << std::endl;
 }
 
-void SyntaxErrorLogger::reportAttemptingFullContext(antlr4::Parser* UNUSED(recognizer), const antlr4::dfa::DFA& UNUSED(dfa),
-                                                    size_t UNUSED(startIndex), size_t UNUSED(stopIndex),
-                                                    const antlrcpp::BitSet& UNUSED(conflictingAlts),
-                                                    antlr4::atn::ATNConfigSet* UNUSED(configs)) {
+void syntax_error_logger::reportAttemptingFullContext(antlr4::Parser* UNUSED(recognizer), const antlr4::dfa::DFA& UNUSED(dfa),
+                                                      size_t UNUSED(startIndex), size_t UNUSED(stopIndex),
+                                                      const antlrcpp::BitSet& UNUSED(conflictingAlts),
+                                                      antlr4::atn::ATNConfigSet* UNUSED(configs)) {
     // cerr << ":AttemptingFullContext:" << std::endl;
 }
 
