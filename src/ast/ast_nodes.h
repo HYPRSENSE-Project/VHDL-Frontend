@@ -95,6 +95,7 @@ enum class physical_unit_lieral_e { NONE, DECIMAL, BASED };
 enum class generic_map_aspect_e { MAP, BOX, DEFAULT };
 
 enum class force_mode_e { IN, OUT };
+enum class name_kind_e { SIMPLE, SELECTED, SLICE, ATTRIBUTE, CALL, EXTERNAL };
 // clang-format off
 using declaration_ref = std::variant<
     std::monostate,
@@ -276,7 +277,7 @@ using type_definition_item = std::variant<
     // access_type_definition
     subtype_indication*,
     // file_type_definition
-    name_node*,
+    type_mark*,
     // protected_type_definition
     protected_type_definition*,
     protected_type_declaration*>;
@@ -393,8 +394,34 @@ struct literal_node {
     declaration_ref resolved_ref;
 };
 
+struct name_slice {
+    explicit_range* range{nullptr};
+};
+
+struct name_attribute {
+    std::string signature;
+    std::string designator;
+};
+
+struct name_arguments {
+    std::vector<association_element*> associations;
+};
+
 struct name_node {
     std::string text;
+    std::string value;
+    name_kind_e kind{name_kind_e::SIMPLE};
+    name_node* prefix{nullptr};
+    name_slice* slice{nullptr};
+    name_attribute* attribute{nullptr};
+    name_arguments* arguments{nullptr};
+    // elaborated members
+    declaration_ref resolved_ref;
+};
+
+struct type_mark {
+    name_node* name{nullptr};
+    // elaborated members
     declaration_ref resolved_ref;
 };
 
@@ -441,7 +468,7 @@ struct signal_declaration {
     std::string identifier;
     signal_mode_e mode{ast::signal_mode_e::NONE};
     resolution_indication* resolution;
-    std::string type;
+    type_mark* type;
     constraint_item constraint;
     bool is_bus;
     // elaborated members
@@ -505,7 +532,7 @@ struct package_declaration {
     std::string identifier;
     std::vector<interface_declaration_item> generic_list;
     std::vector<association_element*> generic_map;
-    std::vector<package_declarative_item> declarative_items;
+    std::vector<package_declarative_item> declarations;
     // elaborated members
     std::vector<ast::use_clause*> packages_in_scope;
     design_file* my_file;
@@ -514,7 +541,7 @@ struct package_declaration {
 
 struct package_instantiation_declaration {
     std::string identifier;
-    std::string target_name;
+    name_node* target_name{nullptr};
     std::vector<association_element*> generic_map;
     // elaborated members
     std::vector<ast::use_clause*> packages_in_scope;
@@ -549,7 +576,7 @@ struct subprogram_declaration {
     std::vector<interface_declaration_item> generic_list;
     std::vector<association_element*> generic_map;
     std::vector<interface_declaration_item> parameter_list;
-    std::string return_type;
+    type_mark* return_type;
     // elaborated members
     declaration_ref return_type_ref;
 };
@@ -561,7 +588,7 @@ struct subprogram_declaration_overload {
 
 struct subprogram_instantiation_declaration {
     std::string designator;
-    std::string target_name;
+    name_node* target_name{nullptr};
     // elaborated members
     subprogram_declaration* target_ref{nullptr};
 };
@@ -572,7 +599,7 @@ struct enumeration_type_definition {
 
 struct secondary_unit {
     physical_unit_lieral_e physical_literal_type{physical_unit_lieral_e::NONE};
-    std::string physical_literal_name;
+    name_node* physical_literal_name{nullptr};
 };
 
 struct physical_unit_definition {
@@ -586,7 +613,7 @@ struct numeric_type_definition {
 };
 
 struct unbounded_array_definition {
-    std::vector<std::string> index_subtype_definitions;
+    std::vector<type_mark*> index_subtype_definitions;
 };
 
 struct constrained_array_definition {
@@ -665,8 +692,8 @@ struct alias_declaration {
     subtype_indication* indication;
     std::string name;
     // signature
-    std::vector<std::string> type_marks;
-    std::string return_type_mark;
+    std::vector<type_mark*> type_marks;
+    type_mark* return_type_mark;
     // elaborated members
     declaration_ref name_ref;
     std::vector<declaration_ref> type_mark_refs;
@@ -675,7 +702,7 @@ struct alias_declaration {
 
 struct attribute_declaration {
     std::string identifier;
-    std::string type_mark;
+    type_mark* type;
     // elaborated members
     declaration_ref type_ref;
 };
@@ -722,7 +749,7 @@ struct interface_function_specification {
     bool is_impure{false};
     std::string designator;
     std::vector<interface_declaration_item> formal_parameter_list;
-    std::string return_type_mark;
+    type_mark* return_type_mark;
     // elaborated members
     declaration_ref return_type_ref;
 };
@@ -730,12 +757,12 @@ struct interface_function_specification {
 struct interface_subprogram_declaration {
     std::variant<interface_procedure_specification*, interface_function_specification*> nterface_subprogram_specification;
     bool is_box{false};
-    std::string interface_subprogram_default;
+    name_node* interface_subprogram_default{nullptr};
 };
 
 struct interface_package_declaration {
     std::string identifier;
-    std::string name;
+    name_node* name{nullptr};
     generic_map_aspect_e map_type{generic_map_aspect_e::MAP};
     std::vector<association_element*> generic_map_aspect;
     // elaborated members
@@ -788,7 +815,7 @@ struct package_body {
 
 struct disconnection_specification {
     std::string signal_name;
-    std::string type_mark;
+    type_mark* type;
     expression_item after_expression;
     // elaborated members
     declaration_ref signal_ref;
@@ -829,15 +856,13 @@ struct resolution_indication {
 };
 
 struct subtype_indication {
-    resolution_indication* resolution;
-    std::string type;
+    resolution_indication* resolution{nullptr};
+    type_mark* type{nullptr};
     constraint_item constr;
-    // elaborated members
-    declaration_ref type_ref;
 };
 
 struct qualified_expression {
-    std::string type;
+    type_mark* type{nullptr};
     aggregate* aggr;
     // elaborated members
     declaration_ref type_ref;
@@ -1034,7 +1059,7 @@ struct entity_declaration {
 
 struct architecture_body {
     std::string identifier;
-    std::string primary;
+    name_node* primary{nullptr};
     std::vector<block_declarative_item> block_declarative_items;
     std::vector<concurrent_statement*> concurrent_statements;
     // elaborated members

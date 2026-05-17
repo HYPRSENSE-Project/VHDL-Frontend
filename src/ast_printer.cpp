@@ -4,6 +4,8 @@
 #include <type_traits>
 
 namespace {
+std::string name_text(const ast::name_node* node) { return node ? node->text : std::string(); }
+
 void print_string_list(std::ostream& os, const std::vector<std::string>& values) {
     for(size_t i = 0; i < values.size(); ++i) {
         if(i)
@@ -27,7 +29,7 @@ void print_object(std::ostream& os, const ast::interface_declaration_item& item)
                                 std::is_same_v<T, ast::interface_variable_declaration> ||
                                 std::is_same_v<T, ast::interface_file_declaration>) {
                 os << decl->identifier;
-                if(decl->subtype_indic && !decl->subtype_indic->type.empty())
+                if(decl->subtype_indic && !decl->subtype_indic->type->name->text.empty())
                     os << " : " << decl->subtype_indic->type;
             } else if constexpr(std::is_same_v<T, ast::constant_declaration> || std::is_same_v<T, ast::variable_declaration> ||
                                 std::is_same_v<T, ast::file_declaration>) {
@@ -163,7 +165,7 @@ void print_ast(std::ostream& os, ast::design_file* top) {
                 } else if constexpr(std::is_same_v<T, ast::context_declaration>) {
                     os << "context " << item->identifier << '\n';
                 } else if constexpr(std::is_same_v<T, ast::architecture_body>) {
-                    os << "architecture " << item->identifier << " of " << item->primary << '\n';
+                    os << "architecture " << item->identifier << " of " << name_text(item->primary) << '\n';
                     os << "  component instantiations:\n";
                     for(const auto* stmt : item->concurrent_statements)
                         print_statement_components(os, stmt);

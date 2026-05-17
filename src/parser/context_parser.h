@@ -40,6 +40,8 @@ ast::resolution_indication* parse(vhdl_antlr::vhdlParser::Resolution_indicationC
 ast::expression_item parse(vhdl_antlr::vhdlParser::ExpressionContext*, ast::ast_node_factory&);
 ast::expression_item parse(vhdl_antlr::vhdlParser::ConditionContext*, ast::ast_node_factory&);
 std::vector<ast::association_element*> parse(vhdl_antlr::vhdlParser::Association_listContext*, ast::ast_node_factory&);
+ast::name_node* parse(vhdl_antlr::vhdlParser::NameContext*, ast::ast_node_factory&);
+ast::type_mark* parse(vhdl_antlr::vhdlParser::Type_markContext*, ast::ast_node_factory&);
 void parse(vhdl_antlr::vhdlParser::Generate_statement_bodyContext*, ast::generate_statement_body&, ast::ast_node_factory&);
 std::vector<ast::choice_item> parse(vhdl_antlr::vhdlParser::ChoicesContext*, ast::ast_node_factory&);
 void parse(vhdl_antlr::vhdlParser::Generate_statement_body_with_begin_endContext*, ast::generate_statement_body&, ast::ast_node_factory&);

@@ -1,9 +1,11 @@
+#include "ast_nodes.h"
 #include "elaborator.h"
 #include <algorithm>
 #include <cctype>
 #include <sstream>
 #include <string_view>
 #include <type_traits>
+#include <variant>
 
 namespace vhdl_fe {
 namespace {
@@ -90,6 +92,17 @@ bool looks_like_literal(const std::string& text) {
     if(std::isdigit(static_cast<unsigned char>(value.front())))
         return true;
     return value.find('"') != std::string::npos || value.find('\'') != std::string::npos;
+}
+
+std::string name_text(const ast::name_node* node) {
+    // TODO: implement full name to string conversion
+    return node ? node->text : std::string();
+}
+
+std::string type_mark_text(const ast::type_mark* node) {
+    if(node)
+        return node->name->text;
+    return std::string();
 }
 
 template <typename T> T* ref_as(const ast::declaration_ref& ref) {
@@ -197,7 +210,6 @@ struct reference_resolver {
             return {};
         if(parts.size() > 1)
             return lookup_qualified(sc.lib, name);
-
         const auto key = parts[0];
         for(scope* current = &sc; current; current = current->parent) {
             auto it = current->symbols.find(key);
@@ -209,10 +221,8 @@ struct reference_resolver {
                 return it->second.front();
             }
         }
-
         if(auto imported = lookup_in_use_clauses(sc, key); !empty_ref(imported))
             return imported;
-
         return {};
     }
 
@@ -221,7 +231,6 @@ struct reference_resolver {
         if(parts.empty() || parts.size() == 1) {
             return {};
         }
-
         if(parts.size() == 2) {
             if(auto* entity = elab.find_entity(lib_name, name))
                 return entity;
@@ -233,7 +242,6 @@ struct reference_resolver {
                 return config;
             return {};
         }
-
         if(parts.size() >= 3) {
             const auto package_name = parts[0] + "." + parts[1];
             if(auto* package = elab.find_package(lib_name, package_name)) {
@@ -242,7 +250,6 @@ struct reference_resolver {
                 return lookup_in_package(package, parts[2]);
             }
         }
-
         return {};
     }
 
@@ -276,7 +283,7 @@ struct reference_resolver {
         scope package_scope;
         package_scope.lib = file_lib(package->my_file);
         insert_interfaces(package_scope, package->generic_list);
-        insert_declarations(package_scope, package->declarative_items);
+        insert_declarations(package_scope, package->declarations);
         auto it = package_scope.symbols.find(canonicalize(name));
         if(it == package_scope.symbols.end() || it->second.empty())
             return {};
@@ -289,7 +296,7 @@ struct reference_resolver {
         if(!use)
             return;
         for(auto* clause : use->clauses) {
-            if(!clause)
+            if(!clause || clause->package_ref || !std::holds_alternative<std::monostate>(clause->selected_ref))
                 continue;
             auto parts = split_name(full_selected_name(clause));
             if(parts.empty())
@@ -322,8 +329,23 @@ struct reference_resolver {
 
     void apply_unit_use_clauses(scope& sc, const std::vector<ast::use_clause*>& clauses) {
         sc.use_clauses = clauses;
+        auto use_std = elab.parser.anf.create<ast::use_clause>();
+        use_std->clauses.emplace_back(elab.parser.anf.create<ast::used_package>());
+        use_std->clauses.back()->identifier = "std";
+        use_std->clauses.back()->suffixes.emplace_back("standard");
+        use_std->clauses.back()->suffixes.emplace_back("all");
+        sc.use_clauses.push_back(use_std);
         for(auto* use : sc.use_clauses)
             resolve_use_clause(use, sc.lib);
+        // auto package_ref = elab.find_package("std", "std.standard");
+        // if(package_ref)
+        //     insert_declarations(sc, package_ref->declarations);
+        // for(auto* use : sc.use_clauses) {
+        //     resolve_use_clause(use, sc.lib);
+        //     for(auto* clause : use->clauses) {
+        //         // TODO: insert all declarations from clause->selected_ref or clause->package_ref into scope
+        //     }
+        // }
     }
 
     void resolve_entity(ast::entity_declaration* entity) {
@@ -343,7 +365,7 @@ struct reference_resolver {
     void resolve_architecture(ast::architecture_body* arch) {
         scope root_sc(file_lib(arch->my_file));
         apply_unit_use_clauses(root_sc, arch->packages_in_scope);
-        arch->primary_ref = elab.find_entity(root_sc.lib, arch->primary);
+        arch->primary_ref = elab.find_entity(root_sc.lib, name_text(arch->primary));
         scope prim_sc(&root_sc);
         if(arch->primary_ref) {
             arch->primary_ref->architectures.push_back(arch);
@@ -363,10 +385,10 @@ struct reference_resolver {
         apply_unit_use_clauses(root_scope, package->packages_in_scope);
         scope sc(&root_scope);
         insert_interfaces(sc, package->generic_list);
-        insert_declarations(sc, package->declarative_items);
+        insert_declarations(sc, package->declarations);
         resolve_interfaces(sc, package->generic_list);
         resolve_associations(sc, package->generic_map, sc, nullptr);
-        resolve_declarations(sc, package->declarative_items);
+        resolve_declarations(sc, package->declarations);
     }
 
     void resolve_package_body(ast::package_body* body) {
@@ -377,7 +399,7 @@ struct reference_resolver {
         if(body->package_ref) {
             body->package_ref->body.push_back(body);
             insert_interfaces(sc, body->package_ref->generic_list);
-            insert_declarations(sc, body->package_ref->declarative_items);
+            insert_declarations(sc, body->package_ref->declarations);
         }
         insert_declarations(sc, body->declarative_items);
         resolve_declarations(sc, body->declarative_items);
@@ -387,7 +409,7 @@ struct reference_resolver {
         scope sc;
         sc.lib = file_lib(inst->my_file);
         apply_unit_use_clauses(sc, inst->packages_in_scope);
-        inst->target_package_ref = elab.find_package(sc.lib, inst->target_name);
+        inst->target_package_ref = elab.find_package(sc.lib, name_text(inst->target_name));
         scope formal_scope;
         formal_scope.lib = sc.lib;
         if(inst->target_package_ref)
@@ -531,12 +553,12 @@ struct reference_resolver {
                                 resolve_interfaces(sc, spec->formal_parameter_list);
                             } else {
                                 resolve_interfaces(sc, spec->formal_parameter_list);
-                                spec->return_type_ref = lookup(sc, spec->return_type_mark);
+                                spec->return_type_ref = lookup(sc, type_mark_text(spec->return_type_mark));
                             }
                         },
                         node->nterface_subprogram_specification);
                 } else if constexpr(std::is_same_v<T, ast::interface_package_declaration>) {
-                    node->package_ref = elab.find_package(sc.lib, node->name);
+                    node->package_ref = elab.find_package(sc.lib, name_text(node->name));
                     resolve_associations(sc, node->generic_map_aspect, sc, nullptr);
                 }
             },
@@ -555,7 +577,7 @@ struct reference_resolver {
                     return;
                 using T = std::decay_t<decltype(*node)>;
                 if constexpr(std::is_same_v<T, ast::signal_declaration>) {
-                    node->type_ref = lookup(sc, node->type);
+                    node->type_ref = lookup(sc, type_mark_text(node->type));
                     resolve_resolution(sc, node->resolution);
                 } else if constexpr(std::is_same_v<T, ast::component_declaration>) {
                     resolve_interfaces(sc, node->generic_list);
@@ -582,10 +604,10 @@ struct reference_resolver {
                     node->name_ref = lookup(sc, node->name);
                     node->type_mark_refs.clear();
                     for(const auto& type_mark : node->type_marks)
-                        node->type_mark_refs.push_back(lookup(sc, type_mark));
-                    node->return_type_mark_ref = lookup(sc, node->return_type_mark);
+                        node->type_mark_refs.push_back(lookup(sc, type_mark_text(type_mark)));
+                    node->return_type_mark_ref = lookup(sc, type_mark_text(node->return_type_mark));
                 } else if constexpr(std::is_same_v<T, ast::attribute_declaration>) {
-                    node->type_ref = lookup(sc, node->type_mark);
+                    node->type_ref = lookup(sc, type_mark_text(node->type));
                 } else if constexpr(std::is_same_v<T, ast::attribute_specification>) {
                     node->entity_refs.clear();
                     for(const auto& name : node->entity_name_list)
@@ -598,12 +620,12 @@ struct reference_resolver {
                         node->constituent_refs.push_back(lookup(sc, name));
                 } else if constexpr(std::is_same_v<T, ast::disconnection_specification>) {
                     node->signal_ref = lookup(sc, node->signal_name);
-                    node->type_ref = lookup(sc, node->type_mark);
+                    node->type_ref = lookup(sc, type_mark_text(node->type));
                     resolve_expression(sc, node->after_expression);
                 } else if constexpr(std::is_same_v<T, ast::subprogram_declaration>) {
                     resolve_subprogram_declaration(sc, node);
                 } else if constexpr(std::is_same_v<T, ast::subprogram_instantiation_declaration>) {
-                    node->target_ref = ref_as<ast::subprogram_declaration>(lookup(sc, node->target_name));
+                    node->target_ref = ref_as<ast::subprogram_declaration>(lookup(sc, name_text(node->target_name)));
                 } else if constexpr(std::is_same_v<T, ast::subprogram_body>) {
                     if(node->specification)
                         resolve_subprogram_declaration(sc, node->specification);
@@ -629,7 +651,7 @@ struct reference_resolver {
         resolve_interfaces(sc, subprogram->generic_list);
         resolve_associations(sc, subprogram->generic_map, sc, nullptr);
         resolve_interfaces(sc, subprogram->parameter_list);
-        subprogram->return_type_ref = lookup(sc, subprogram->return_type);
+        subprogram->return_type_ref = lookup(sc, type_mark_text(subprogram->return_type));
     }
 
     void resolve_type_definition(scope& sc, ast::type_definition_item& type) {
@@ -663,11 +685,28 @@ struct reference_resolver {
             type);
     }
 
+    ast::declaration_ref lookup(scope& sc, ast::name_node* name) {
+        if(!name)
+            return {};
+        switch(name->kind) {
+        default:
+            return lookup(sc, name->value);
+        case ast::name_kind_e::SLICE:
+            return lookup(sc, name->prefix->value);
+        }
+    }
+
+    void resolve_type_mark(scope& sc, ast::type_mark* mark) {
+        if(!mark)
+            return;
+        mark->resolved_ref = lookup(sc, mark->name);
+    }
+
     void resolve_subtype_indication(scope& sc, ast::subtype_indication* subtype) {
         if(!subtype)
             return;
         resolve_resolution(sc, subtype->resolution);
-        subtype->type_ref = lookup(sc, subtype->type);
+        resolve_type_mark(sc, subtype->type);
         resolve_constraint(sc, subtype->constr);
     }
 
@@ -773,7 +812,7 @@ struct reference_resolver {
     void resolve_expression_node(scope& sc, ast::qualified_expression* node) {
         if(!node)
             return;
-        node->type_ref = lookup(sc, node->type);
+        node->type_ref = lookup(sc, node->type->name->text);
         resolve_expression_node(sc, node->aggr);
     }
     void resolve_expression_node(scope& sc, ast::simple_expression* node) {

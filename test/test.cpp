@@ -3,15 +3,21 @@
 #include <catch2/catch_test_macros.hpp>
 #include <filesystem>
 #include <parser.h>
+#include <variant>
 
-TEST_CASE("001_minimal", "[single-file][single-instance]") {
-    parser::Parser parser;
-    auto const root_path = std::filesystem::path(__FILE__).parent_path().parent_path();
-    std::vector<ast::design_file*> files;
+auto const root_path = std::filesystem::path(__FILE__).parent_path().parent_path();
+
+void add_ieee_packages(parser::Parser& parser, std::vector<ast::design_file*>& files) {
     for(auto i : std::array<std::string, 2>{"contrib/ieee/std_logic_1164.vhdl", "contrib/ieee/numeric_bit.vhdl"}) {
         files.push_back(parser.parse_file(root_path / i, parser::encoding::UTF_8, "ieee"));
     }
+}
+
+TEST_CASE("001_minimal", "[single-file][single-instance]") {
+    parser::Parser parser;
+    std::vector<ast::design_file*> files;
     files.push_back(parser.parse_file(root_path / "tests/minimal/valid/basic/001_minimal.vhd", parser::encoding::UTF_8, "work"));
+    add_ieee_packages(parser, files);
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files({files});
     elab.resolve_references();
@@ -28,19 +34,20 @@ TEST_CASE("001_minimal", "[single-file][single-instance]") {
     REQUIRE(input_port->identifier == "a");
     REQUIRE(input_port->signal_mode == ast::signal_mode_e::IN);
     REQUIRE(input_port->subtype_indic != nullptr);
-    REQUIRE(input_port->subtype_indic->type == "std_logic");
+    REQUIRE(input_port->subtype_indic->type->name->text == "std_logic");
 
     auto const* output_port = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[1]);
     REQUIRE(output_port != nullptr);
     REQUIRE(output_port->identifier == "b");
     REQUIRE(output_port->signal_mode == ast::signal_mode_e::OUT);
     REQUIRE(output_port->subtype_indic != nullptr);
-    REQUIRE(output_port->subtype_indic->type == "std_logic");
+    REQUIRE(output_port->subtype_indic->type->name->text == "std_logic");
 
     auto const* arch = top_units[0]->architectures[0];
     REQUIRE(arch != nullptr);
     REQUIRE(arch->identifier == "rtl");
-    REQUIRE(arch->primary == "top");
+    REQUIRE(arch->primary != nullptr);
+    REQUIRE(arch->primary->text == "top");
     REQUIRE(arch->block_declarative_items.empty());
     REQUIRE(arch->concurrent_statements.size() == 1);
 
@@ -71,12 +78,12 @@ TEST_CASE("001_minimal", "[single-file][single-instance]") {
 
 TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
     parser::Parser parser;
-    auto const root_path = std::filesystem::path(__FILE__).parent_path().parent_path();
     std::vector<ast::design_file*> files;
     for(auto i : std::array<std::string, 3>{"tests/zamiacad/examples/add4/add4.vhdl", "tests/zamiacad/examples/add4/ha.vhdl",
                                             "tests/zamiacad/examples/add4/va.vhdl"}) {
         files.push_back(parser.parse_file(root_path / i, parser::encoding::UTF_8, "work"));
     }
+    add_ieee_packages(parser, files);
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files({files});
     elab.resolve_references();
@@ -94,40 +101,45 @@ TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
     REQUIRE(input_a->identifier == "A");
     REQUIRE(input_a->signal_mode == ast::signal_mode_e::IN);
     REQUIRE(input_a->subtype_indic != nullptr);
-    REQUIRE(input_a->subtype_indic->type == "bit_vector(3downto0)");
+    REQUIRE(input_a->subtype_indic->type->name->text == "bit_vector ( 3 downto 0 )");
+    REQUIRE_FALSE(std::holds_alternative<std::monostate>(input_a->subtype_indic->type->resolved_ref));
 
     auto const* input_b = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[1]);
     REQUIRE(input_b != nullptr);
     REQUIRE(input_b->identifier == "B");
     REQUIRE(input_b->signal_mode == ast::signal_mode_e::IN);
     REQUIRE(input_b->subtype_indic != nullptr);
-    REQUIRE(input_b->subtype_indic->type == "bit_vector(3downto0)");
+    REQUIRE(input_b->subtype_indic->type->name->text == "bit_vector ( 3 downto 0 )");
+    REQUIRE_FALSE(std::holds_alternative<std::monostate>(input_b->subtype_indic->type->resolved_ref));
 
     auto const* carry_in = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[2]);
     REQUIRE(carry_in != nullptr);
     REQUIRE(carry_in->identifier == "C_in");
     REQUIRE(carry_in->signal_mode == ast::signal_mode_e::IN);
     REQUIRE(carry_in->subtype_indic != nullptr);
-    REQUIRE(carry_in->subtype_indic->type == "bit");
+    REQUIRE(carry_in->subtype_indic->type->name->text == "bit");
+    REQUIRE_FALSE(std::holds_alternative<std::monostate>(carry_in->subtype_indic->type->resolved_ref));
 
     auto const* sum = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[3]);
     REQUIRE(sum != nullptr);
     REQUIRE(sum->identifier == "S");
     REQUIRE(sum->signal_mode == ast::signal_mode_e::OUT);
     REQUIRE(sum->subtype_indic != nullptr);
-    REQUIRE(sum->subtype_indic->type == "bit_vector(3downto0)");
+    REQUIRE(sum->subtype_indic->type->name->text == "bit_vector ( 3 downto 0 )");
+    REQUIRE_FALSE(std::holds_alternative<std::monostate>(sum->subtype_indic->type->resolved_ref));
 
     auto const* carry_out = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[4]);
     REQUIRE(carry_out != nullptr);
     REQUIRE(carry_out->identifier == "C");
     REQUIRE(carry_out->signal_mode == ast::signal_mode_e::OUT);
     REQUIRE(carry_out->subtype_indic != nullptr);
-    REQUIRE(carry_out->subtype_indic->type == "bit");
+    REQUIRE(carry_out->subtype_indic->type->name->text == "bit");
 
     auto const* arch = top_units[0]->architectures[0];
     REQUIRE(arch != nullptr);
     REQUIRE(arch->identifier == "STRUCTURE");
-    REQUIRE(arch->primary == "add4");
+    REQUIRE(arch->primary != nullptr);
+    REQUIRE(arch->primary->text == "add4");
     REQUIRE(arch->concurrent_statements.size() == 4);
 
     for(std::size_t i = 0; i < arch->concurrent_statements.size(); ++i) {
