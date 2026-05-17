@@ -5,7 +5,8 @@
 #include <parser.h>
 #include <variant>
 
-auto const root_path = std::filesystem::path(__FILE__).parent_path().parent_path();
+auto const my_path = std::filesystem::path(__FILE__).parent_path();
+auto const root_path = my_path.parent_path();
 
 void add_ieee_packages(parser::Parser& parser, std::vector<ast::design_file*>& files) {
     for(auto i : std::array<std::string, 2>{"contrib/ieee/std_logic_1164.vhdl", "contrib/ieee/numeric_bit.vhdl"}) {
@@ -16,7 +17,7 @@ void add_ieee_packages(parser::Parser& parser, std::vector<ast::design_file*>& f
 TEST_CASE("001_minimal", "[single-file][single-instance]") {
     parser::Parser parser;
     std::vector<ast::design_file*> files;
-    files.push_back(parser.parse_file(root_path / "tests/minimal/valid/basic/001_minimal.vhd", parser::encoding::UTF_8, "work"));
+    files.push_back(parser.parse_file(my_path / "minimal/valid/basic/001_minimal.vhd", parser::encoding::UTF_8, "work"));
     add_ieee_packages(parser, files);
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files({files});
@@ -79,9 +80,8 @@ TEST_CASE("001_minimal", "[single-file][single-instance]") {
 TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
     parser::Parser parser;
     std::vector<ast::design_file*> files;
-    for(auto i : std::array<std::string, 3>{"tests/zamiacad/examples/add4/add4.vhdl", "tests/zamiacad/examples/add4/ha.vhdl",
-                                            "tests/zamiacad/examples/add4/va.vhdl"}) {
-        files.push_back(parser.parse_file(root_path / i, parser::encoding::UTF_8, "work"));
+    for(auto i : std::array<std::string, 3>{"zamiacad/add4/add4.vhdl", "zamiacad/add4/ha.vhdl", "zamiacad/add4/va.vhdl"}) {
+        files.push_back(parser.parse_file(my_path / i, parser::encoding::UTF_8, "work"));
     }
     add_ieee_packages(parser, files);
     vhdl_fe::elaborator elab(parser);

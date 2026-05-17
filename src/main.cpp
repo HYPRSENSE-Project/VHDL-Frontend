@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     parser::Parser parser;
     std::vector<ast::design_file*> results;
     std::string actual_libname = "work";
+    auto syntax_error_count = 0u;
     for(auto i = 1; i < argc; i++)
         if(strncmp(argv[i], "-v", 2) == 0)
             enable_print_ast = true;
@@ -37,6 +38,7 @@ int main(int argc, char** argv) {
             } catch(const std::exception& e) {
                 std::cerr << "error: " << e.what() << "\n";
                 std::cerr << "file will be exlecuded from elaboration";
+                syntax_error_count++;
             }
         }
     vhdl_fe::elaborator elab(parser);
@@ -51,5 +53,5 @@ int main(int argc, char** argv) {
             print_ast(std::cout, df);
         std::cout << std::endl;
     }
-    return 0;
+    return syntax_error_count;
 }

@@ -22,14 +22,6 @@ struct Parser {
      *                 otherwise specified context is used
      * */
     ast::design_file* parse_file(const std::filesystem::path& file_name, encoding enc, std::string lib_name) {
-        std::ifstream ifs(file_name);
-        ifs.seekg(0, std::ios::end);
-        size_t size = ifs.tellg();
-        std::string str(size, ' ');
-        ifs.seekg(0);
-        ifs.read(&str[0], size);
-        str = _to_utf8(str, enc);
-
         auto input_stream = ANTLRFileStream_with_encoding(file_name, enc);
         input_stream.name = file_name.u8string();
         return _parse(input_stream, lib_name);
