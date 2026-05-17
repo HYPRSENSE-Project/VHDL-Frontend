@@ -1,5 +1,8 @@
-#include "syntax_error_logger.h"
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+// Copyright (c) 2015 Nic30
 
+#include "syntax_error_logger.h"
 #include "conversion_exception.h"
 #include <antlr4-runtime.h>
 #include <assert.h>

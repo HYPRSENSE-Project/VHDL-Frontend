@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2015 Nic30
 parser grammar vhdlParser;
 options { tokenVocab=vhdlLexer; }
 

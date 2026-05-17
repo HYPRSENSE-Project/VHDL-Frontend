@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
 #include "context_parser.h"
 #include "vhdlParser/vhdlParser.h"
 #include <algorithm>

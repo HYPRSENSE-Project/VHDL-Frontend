@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// opyright (c) 2026 MINRES Technologies GmbH
+
 #pragma once
 
 #include "ast_node_factory.h"
@@ -6,8 +9,6 @@
 #include "encoding_conversions.h"
 #include "syntax_error_logger.h"
 #include <antlr4-runtime.h>
-#include <fstream>
-#include <iostream>
 #include <vhdlParser/vhdlLexer.h>
 #include <vhdlParser/vhdlParser.h>
 

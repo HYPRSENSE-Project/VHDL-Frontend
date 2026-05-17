@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
 #pragma once
 
 #include "elaborator.h"
@@ -65,7 +68,6 @@ private:
             bind_from_configuration(inst, inst->configuration_ref);
         else if(inst->unit_kind == ast::instantiated_unit_kind_e::COMPONENT && !inst->entity_ref)
             bind_by_component_name(lib, inst);
-
 
         if(inst->entity_ref)
             elab.instantiated_entities.insert(inst->entity_ref);

@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
 #pragma once
+
 #include "ast_nodes.h"
-#include <any>
 #include <memory>
 #include <vector>
+
 namespace ast {
 struct ast_node_factory {
     template <typename T> T* create() {

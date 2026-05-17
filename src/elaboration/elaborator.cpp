@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
 #include "elaborator.h"
 #include "ast_nodes.h"
 #include "linker.h"

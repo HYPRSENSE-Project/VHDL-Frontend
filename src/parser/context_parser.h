@@ -1,6 +1,12 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
+#pragma once
+
 #include <ast_node_factory.h>
 #include <ast_nodes.h>
 #include <vhdlParser/vhdlParser.h>
+
 namespace parser {
 namespace context {
 ast::design_file* parse(vhdl_antlr::vhdlParser::Design_fileContext*, ast::ast_node_factory&);

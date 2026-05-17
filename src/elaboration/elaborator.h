@@ -1,4 +1,8 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
 #pragma once
+
 #include <ast_nodes.h>
 #include <mutex>
 #include <parser.h>

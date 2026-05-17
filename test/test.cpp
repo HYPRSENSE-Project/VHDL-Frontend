@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
 #include "elaborator.h"
 #include <array>
 #include <catch2/catch_test_macros.hpp>

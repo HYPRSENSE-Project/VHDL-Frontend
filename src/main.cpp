@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
 #include "ast_printer.h"
 #include "elaborator.h"
 #include <array>

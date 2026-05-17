@@ -1,4 +1,5 @@
-
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2015 Nic30
 lexer grammar vhdlLexer;
 
 // case insensitive chars

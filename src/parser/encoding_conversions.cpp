@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+// Copyright (c) 2015 Nic30
+
 #include "encoding_conversions.h"
 #include <Exceptions.h>
 #include <codecvt>

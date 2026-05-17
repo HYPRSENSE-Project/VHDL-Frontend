@@ -1,5 +1,7 @@
-#include "ast_printer.h"
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
 
+#include "ast_printer.h"
 #include <ostream>
 #include <type_traits>
 

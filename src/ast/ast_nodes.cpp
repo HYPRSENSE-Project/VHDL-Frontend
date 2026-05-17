@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 MINRES Technologies GmbH
+
 #include "ast_nodes.h"
 #include "ast_node_factory.h"
 #include <type_traits>
