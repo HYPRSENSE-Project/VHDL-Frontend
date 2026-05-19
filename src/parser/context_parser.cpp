@@ -2151,7 +2151,7 @@ ast::sequential_statement_item parse(vhdlParser::Loop_statementContext* ctx, ast
     auto node = anf.create<ast::loop_statement>();
     if(auto iteration = ctx->iteration_scheme()) {
         if(auto condition = iteration->condition())
-            node->iteration_scheme = parse(condition->expression(), anf);
+            std::visit([node](auto expr) { node->iteration_scheme = expr; }, parse(condition->expression(), anf));
         else if(auto parameter = iteration->parameter_specification())
             node->iteration_scheme = parse(parameter, anf);
     }

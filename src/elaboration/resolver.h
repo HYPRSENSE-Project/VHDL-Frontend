@@ -1227,8 +1227,17 @@ struct reference_resolver {
                             resolve_sequential_item(sc, nested);
                     }
                 } else if constexpr(std::is_same_v<T, ast::loop_statement>) {
-                    if(auto* expr = std::get_if<ast::expression_item>(&node->iteration_scheme))
-                        resolve_expression(sc, *expr);
+                    std::visit(
+                        [this, &sc](auto* iteration) {
+                            if(!iteration)
+                                return;
+                            using I = std::decay_t<decltype(*iteration)>;
+                            if constexpr(std::is_same_v<I, ast::parameter_specification>)
+                                resolve_discrete_range(sc, iteration->range);
+                            else
+                                resolve_expression_node(sc, iteration);
+                        },
+                        node->iteration_scheme);
                     for(auto& nested : node->statements)
                         resolve_sequential_item(sc, nested);
                 } else if constexpr(std::is_same_v<T, ast::next_statement>) {

@@ -149,6 +149,15 @@ using expression_item = std::variant<
     qualified_expression*,
     binary_expression*>;
 
+using loop_expression_item = std::variant<
+    simple_expression*,
+    conditional_primary*,
+    literal_node*, 
+    allocator*, 
+    aggregate*, 
+    qualified_expression*,
+    binary_expression*, parameter_specification*>;
+
 using block_declarative_item = std::variant<
     signal_declaration*,
     subprogram_declaration*,
@@ -1203,7 +1212,7 @@ struct parameter_specification {
 };
 
 struct loop_statement {
-    std::variant<expression_item, parameter_specification*> iteration_scheme;
+    loop_expression_item iteration_scheme;
     std::vector<sequential_statement_item> statements;
 };
 
