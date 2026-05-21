@@ -6,7 +6,7 @@
 #include <type_traits>
 
 namespace {
-std::string name_text(const ast::name_node* node) { return node ? node->text : std::string(); }
+std::string name_text(const ast::name_node* node) { return node ? ast::to_string(node) : std::string(); }
 
 void print_string_list(std::ostream& os, const std::vector<std::string>& values) {
     for(size_t i = 0; i < values.size(); ++i) {
@@ -31,7 +31,7 @@ void print_object(std::ostream& os, const ast::interface_declaration_item& item)
                                 std::is_same_v<T, ast::interface_variable_declaration> ||
                                 std::is_same_v<T, ast::interface_file_declaration>) {
                 os << decl->identifier;
-                if(decl->subtype_indic && !decl->subtype_indic->type->name->text.empty())
+                if(decl->subtype_indic && !decl->subtype_indic->type->name->value.empty())
                     os << " : " << decl->subtype_indic->type;
             } else if constexpr(std::is_same_v<T, ast::constant_declaration> || std::is_same_v<T, ast::variable_declaration> ||
                                 std::is_same_v<T, ast::file_declaration>) {
