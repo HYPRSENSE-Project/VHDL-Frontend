@@ -4,6 +4,7 @@
 #include "validator.h"
 #include <cctype>
 #include <string_view>
+#include <syntax_error_logger.h>
 #include <type_traits>
 
 namespace vhdl_fe {
@@ -70,20 +71,20 @@ std::string package_name(const ast::used_package* used) {
 
 class resolved_ast_validator {
 public:
-    std::vector<elaboration_diagnostic> run(const std::vector<ast::design_file*>& design_files) {
+    std::vector<ast::error_data> run(const std::vector<ast::design_file*>& design_files) {
         for(auto* file : design_files)
             validate_design_file(file);
         return diagnostics;
     }
 
 private:
-    std::vector<elaboration_diagnostic> diagnostics;
+    std::vector<ast::error_data> diagnostics;
 
     void add_unresolved(std::string what, const std::string& name) {
         if(name.empty())
-            diagnostics.push_back({elaboration_diagnostic::severity_e::ERROR, std::move(what)});
+            diagnostics.push_back({ast::error_data::error_kind_t::VALIDATIONERROR, std::move(what)});
         else
-            diagnostics.push_back({elaboration_diagnostic::severity_e::ERROR, std::move(what) + ": " + name});
+            diagnostics.push_back({ast::error_data::error_kind_t::VALIDATIONERROR, std::move(what) + ": " + name});
     }
 
     void require_ref(const ast::declaration_ref& ref, std::string what, const std::string& name) {
@@ -253,8 +254,8 @@ private:
                                 require_ref(node->type_mark_refs[i], "unresolved alias signature type", name, signature->type_marks[i]);
                         }
                         if(signature->return_type_mark)
-                            require_ref(node->return_type_mark_ref, "unresolved alias return type", type_mark_text(signature->return_type_mark),
-                                        signature->return_type_mark);
+                            require_ref(node->return_type_mark_ref, "unresolved alias return type",
+                                        type_mark_text(signature->return_type_mark), signature->return_type_mark);
                     }
                 } else if constexpr(std::is_same_v<T, ast::attribute_declaration>) {
                     require_ref(node->type_ref, "unresolved attribute type", type_mark_text(node->type), node->type);
@@ -988,7 +989,7 @@ private:
 
 } // namespace
 
-std::vector<elaboration_diagnostic> validate_resolved_ast(const std::vector<ast::design_file*>& design_files) {
+std::vector<ast::error_data> validate_resolved_ast(const std::vector<ast::design_file*>& design_files) {
     return resolved_ast_validator{}.run(design_files);
 }
 

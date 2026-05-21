@@ -34,7 +34,7 @@ void syntax_error_logger::check_errors() {
 void syntax_error_logger::syntaxError(antlr4::Recognizer* recognizer, antlr4::Token* UNUSED(offendingSymbol), size_t line,
                                       size_t charPositionInLine, const string& msg, exception_ptr UNUSED(e)) {
 
-    error_data err;
+    ast::error_data err;
     // use offsets and overrides from file_line_map if available
     err.line = line;
     err.filename = recognizer->getInputStream()->getSourceName();

@@ -3,6 +3,7 @@
 
 #include "elaborator.h"
 #include "ast_nodes.h"
+#include "error_data.h"
 #include "linker.h"
 #include "resolver.h"
 #include <array>
@@ -17,8 +18,8 @@ elaborator::elaborator(parser::parser& p)
     populate_std_packages();
 }
 
-void elaborator::add_diagnostic(elaboration_diagnostic::severity_e severity, std::string message) {
-    diagnostics.push_back({severity, std::move(message)});
+void elaborator::add_diagnostic(ast::error_data::error_kind_t kind, std::string message) {
+    diagnostics.push_back({kind, std::move(message)});
 }
 
 ast::entity_declaration* elaborator::find_entity(const std::string& lib_name, const std::string& name) {
@@ -28,7 +29,7 @@ ast::entity_declaration* elaborator::find_entity(const std::string& lib_name, co
     auto it = entities_by_key.find(make_key(lib, entity_name));
     if(it != entities_by_key.end())
         return it->second;
-    add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("cannot resolve entity ") + name);
+    add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR, std::string("cannot resolve entity ") + name);
     return nullptr;
 }
 
@@ -42,14 +43,15 @@ ast::architecture_body* elaborator::find_architecture(const std::string& lib_nam
         auto it = architectures_by_entity_key.find(make_key(lib, entity));
         if(it != architectures_by_entity_key.end() && !it->second.empty())
             return it->second.back();
-        add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("cannot resolve architecture for entity ") + entity_name);
+        add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR,
+                       std::string("cannot resolve architecture for entity ") + entity_name);
         return nullptr;
     }
 
     auto it = architectures_by_key.find(make_arch_key(lib, entity, architecture_name));
     if(it != architectures_by_key.end())
         return it->second;
-    add_diagnostic(elaboration_diagnostic::severity_e::ERROR,
+    add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR,
                    std::string("cannot resolve architecture ") + architecture_name + " of entity " + entity_name);
     return nullptr;
 }
@@ -60,7 +62,7 @@ std::vector<ast::architecture_body*> elaborator::find_architectures_for_entity(c
     auto it = architectures_by_entity_key.find(make_key(lib, entity));
     if(it != architectures_by_entity_key.end())
         return it->second;
-    add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("cannot find any architecture for entity ") + entity_name);
+    add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR, std::string("cannot find any architecture for entity ") + entity_name);
     return {};
 }
 
@@ -71,7 +73,7 @@ ast::configuration_declaration* elaborator::find_configuration(const std::string
     auto it = configurations_by_key.find(make_key(lib, config_name));
     if(it != configurations_by_key.end())
         return it->second;
-    add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("cannot resolve configuration ") + config_name);
+    add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR, std::string("cannot resolve configuration ") + config_name);
     return nullptr;
 }
 
@@ -82,7 +84,7 @@ ast::package_declaration* elaborator::find_package(const std::string& lib_name, 
     auto it = packages_by_key.find(make_key(lib, package_name));
     if(it != packages_by_key.end())
         return it->second;
-    add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("cannot resolve package ") + name);
+    add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR, std::string("cannot resolve package ") + name);
     return nullptr;
 }
 
@@ -93,18 +95,18 @@ ast::context_declaration* elaborator::find_context(const std::string& lib_name, 
     auto it = contexts_by_key.find(make_key(lib, context_name));
     if(it != contexts_by_key.end())
         return it->second;
-    add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("cannot resolve context ") + name);
+    add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR, std::string("cannot resolve context ") + name);
     return nullptr;
 }
 
-const std::vector<elaboration_diagnostic>& elaborator::get_diagnostics() const { return diagnostics; }
+const std::vector<ast::error_data>& elaborator::get_diagnostics() const { return diagnostics; }
 
 void elaborator::add_design_files(std::vector<ast::design_file*> const& file_set) {
     std::unique_lock<std::mutex> lock(files_mtx);
     auto register_design_unit = [this](auto* node, const std::string& key, const char* kind, auto& map) {
         auto [it, inserted] = map.emplace(key, node);
         if(!inserted && it->second != node) {
-            add_diagnostic(elaboration_diagnostic::severity_e::ERROR, std::string("duplicate ") + kind + " declaration: " + key);
+            add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR, std::string("duplicate ") + kind + " declaration: " + key);
         }
     };
     for(auto* df : file_set) {

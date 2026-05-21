@@ -222,7 +222,7 @@ struct reference_resolver {
             auto it = current->symbols.find(key);
             if(it != current->symbols.end() && !it->second.empty()) {
                 if(it->second.size() > 1) {
-                    elab.add_diagnostic(elaboration_diagnostic::severity_e::ERROR, "ambiguous reference: " + name);
+                    elab.add_diagnostic(ast::error_data::error_kind_t::ELABORATIONERROR, "ambiguous reference: " + name);
                     return {};
                 }
                 return it->second.front();

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <error_data.h>
 #include <string>
 #include <vector>
 
@@ -22,16 +23,6 @@ public:
     virtual const char* what() const throw() { return _msg.c_str(); }
 };
 
-class error_data {
-public:
-    enum error_kind_t { SYNTAXERROR, REPORTAMBIGUITY, REPORTCONTEXTSENSITIVITY, REPORTATTEMPTINGFULLCONTEXT };
-    enum error_kind_t error_kind;
-    size_t line;
-    size_t charPosition;
-    std::string filename;
-    std::string message;
-};
-
 /*
  * The class which implements ANTLR error listener which is installed in parser
  * and lexer and staging the errors for later check.
@@ -39,7 +30,7 @@ public:
 class syntax_error_logger : public antlr4::ANTLRErrorListener {
 
 private:
-    std::vector<error_data> _errors;
+    std::vector<ast::error_data> _errors;
 
 public:
     std::string error_prefix;

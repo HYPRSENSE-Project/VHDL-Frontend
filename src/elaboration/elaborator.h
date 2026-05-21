@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "error_data.h"
 #include <ast_nodes.h>
 #include <mutex>
 #include <parser.h>
@@ -26,13 +27,13 @@ struct elaborator {
     void add_design_files(std::vector<ast::design_file*> const&);
     void resolve_references();
     std::vector<ast::entity_declaration*> get_top_modules() const;
-    const std::vector<elaboration_diagnostic>& get_diagnostics() const;
+    const std::vector<ast::error_data>& get_diagnostics() const;
 
 private:
     friend struct reference_resolver;
     friend struct linker;
     void populate_std_packages();
-    void add_diagnostic(elaboration_diagnostic::severity_e severity, std::string message);
+    void add_diagnostic(ast::error_data::error_kind_t kind, std::string message);
     // void link_primary_and_secondary_units();
 
     ast::entity_declaration* find_entity(const std::string& lib_name, const std::string& name);
@@ -59,7 +60,7 @@ private:
     std::unordered_map<std::string, ast::context_declaration*> contexts_by_key;
 
     std::unordered_set<ast::entity_declaration*> instantiated_entities;
-    std::vector<elaboration_diagnostic> diagnostics;
+    std::vector<ast::error_data> diagnostics;
     std::mutex files_mtx;
 };
 } // namespace vhdl_fe

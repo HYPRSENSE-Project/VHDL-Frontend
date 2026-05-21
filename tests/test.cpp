@@ -29,8 +29,8 @@ TEST_CASE("001_minimal", "[single-file][single-instance]") {
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files({files});
     elab.resolve_references();
-    auto diags = elab.get_diagnostics();
-    REQUIRE(diags.size() == 0);
+    auto elab_diags = elab.get_diagnostics();
+    REQUIRE(elab_diags.size() == 0);
     auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
     REQUIRE(validation_diags.size() == 0);
 
@@ -98,8 +98,8 @@ TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files({files});
     elab.resolve_references();
-    auto diags = elab.get_diagnostics();
-    REQUIRE(diags.size() == 0);
+    auto elab_diags = elab.get_diagnostics();
+    REQUIRE(elab_diags.size() == 0);
     auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
     REQUIRE(validation_diags.size() == 0);
 
@@ -187,6 +187,8 @@ TEST_CASE("validator_reports_unresolved_names", "[validation][single-file]") {
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files(files);
     elab.resolve_references();
+    auto elab_diags = elab.get_diagnostics();
+    REQUIRE(elab_diags.size() == 0);
     auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
     REQUIRE(std::find_if(validation_diags.begin(), validation_diags.end(),
                          [](const auto& diag) { return diag.message == "unresolved name: x"; }) != validation_diags.end());

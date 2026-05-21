@@ -47,9 +47,11 @@ int main(int argc, char** argv) {
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files(results);
     elab.resolve_references();
-    std::array<std::string, 2> severity_str{"WARN", "ERR"};
+    std::array<std::string, 7> severity_str{
+        "SYNTAX ERROR",        "REPORTAMBIGUITY",   "REPORTCONTEXTSENSITIVITY", "REPORTATTEMPTINGFULLCONTEXT",
+        "ELABORATION WARNING", "ELABORATION ERROR", "VALIDATION ERROR"};
     for(auto& diag : elab.get_diagnostics()) {
-        std::cerr << "[" << severity_str[static_cast<unsigned>(diag.severity)] << "]: " << diag.message << "\n";
+        std::cerr << "[" << severity_str[static_cast<unsigned>(diag.error_kind)] << "]: " << diag.message << "\n";
     }
     if(enable_print_ast) {
         for(auto& df : results)
