@@ -33,9 +33,9 @@ bool looks_like_literal(std::string_view text) {
     return text.find('"') != std::string_view::npos || text.find('\'') != std::string_view::npos;
 }
 
-std::string name_text(const ast::name_node* node) { return node ? node->text : std::string(); }
+std::string name_text(const ast::name_node* node) { return node ? node->value : std::string(); }
 
-std::string type_mark_text(const ast::type_mark* node) { return node && node->name ? node->name->text : std::string(); }
+std::string type_mark_text(const ast::type_mark* node) { return node && node->name ? node->name->value : std::string(); }
 
 std::string full_selected_name(const ast::selected_name& selected) {
     if(selected.suffix.empty())
@@ -83,8 +83,7 @@ private:
         if(name.empty())
             diagnostics.push_back({elaboration_diagnostic::severity_e::ERROR, std::move(what)});
         else
-            diagnostics.push_back(
-                {elaboration_diagnostic::severity_e::ERROR, std::move(what) + ": " + name});
+            diagnostics.push_back({elaboration_diagnostic::severity_e::ERROR, std::move(what) + ": " + name});
     }
 
     void require_ref(const ast::declaration_ref& ref, std::string what, const std::string& name) {
@@ -177,8 +176,7 @@ private:
                 using T = std::decay_t<decltype(*node)>;
                 if constexpr(std::is_same_v<T, ast::interface_constant_declaration> ||
                              std::is_same_v<T, ast::interface_signal_declaration> ||
-                             std::is_same_v<T, ast::interface_variable_declaration> ||
-                             std::is_same_v<T, ast::interface_file_declaration>) {
+                             std::is_same_v<T, ast::interface_variable_declaration> || std::is_same_v<T, ast::interface_file_declaration>) {
                     validate_subtype_indication(node->subtype_indic);
                     if constexpr(!std::is_same_v<T, ast::interface_file_declaration>)
                         validate_expression(node->expression);
@@ -250,8 +248,7 @@ private:
                             require_ref(node->type_mark_refs[i], "unresolved alias signature type", name);
                     }
                     if(node->return_type_mark)
-                        require_ref(node->return_type_mark_ref, "unresolved alias return type",
-                                    type_mark_text(node->return_type_mark));
+                        require_ref(node->return_type_mark_ref, "unresolved alias return type", type_mark_text(node->return_type_mark));
                 } else if constexpr(std::is_same_v<T, ast::attribute_declaration>) {
                     require_ref(node->type_ref, "unresolved attribute type", type_mark_text(node->type));
                 } else if constexpr(std::is_same_v<T, ast::attribute_specification>) {
@@ -268,8 +265,7 @@ private:
                         if(i >= node->constituent_refs.size())
                             add_unresolved("unresolved group constituent", node->group_constituent_list[i]);
                         else
-                            require_ref(node->constituent_refs[i], "unresolved group constituent",
-                                        node->group_constituent_list[i]);
+                            require_ref(node->constituent_refs[i], "unresolved group constituent", node->group_constituent_list[i]);
                     }
                 } else if constexpr(std::is_same_v<T, ast::disconnection_specification>) {
                     require_ref(node->signal_ref, "unresolved disconnection signal", node->signal_name);
@@ -307,8 +303,7 @@ private:
         validate_associations(subprogram->generic_map, false);
         validate_interfaces(subprogram->parameter_list);
         if(subprogram->return_type)
-            require_ref(subprogram->return_type_ref, "unresolved subprogram return type",
-                        type_mark_text(subprogram->return_type));
+            require_ref(subprogram->return_type_ref, "unresolved subprogram return type", type_mark_text(subprogram->return_type));
     }
 
     void validate_type_definition(const ast::type_definition_item& type) {
@@ -348,8 +343,8 @@ private:
     }
 
     void validate_type_mark(ast::type_mark* mark) {
-        if(mark && mark->name && !mark->name->text.empty())
-            require_ref(mark->resolved_ref, "unresolved type mark", mark->name->text);
+        if(mark && mark->name && !mark->name->value.empty())
+            require_ref(mark->resolved_ref, "unresolved type mark", mark->name->value);
     }
 
     void validate_subtype_indication(ast::subtype_indication* subtype) {
@@ -440,10 +435,10 @@ private:
     }
 
     void validate_expression_node(ast::name_node* node) {
-        if(!node || node->text.empty())
+        if(!node || node->value.empty())
             return;
-        if(node->text.front() != '"' && node->text.front() != '\'')
-            require_ref(node->resolved_ref, "unresolved name", node->text);
+        if(node->value.front() != '"' && node->value.front() != '\'')
+            require_ref(node->resolved_ref, "unresolved name", node->value);
         if(node->slice)
             validate_range(node->slice->range);
         if(node->arguments)

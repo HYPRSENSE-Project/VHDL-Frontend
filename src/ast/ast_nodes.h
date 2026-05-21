@@ -421,7 +421,7 @@ struct name_arguments {
 };
 
 struct name_node {
-    std::string text;
+    // std::string text;
     std::string value;
     name_kind_e kind{name_kind_e::SIMPLE};
     name_node* prefix{nullptr};

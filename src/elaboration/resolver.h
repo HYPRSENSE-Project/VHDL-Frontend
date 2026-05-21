@@ -101,12 +101,12 @@ bool looks_like_literal(const std::string& text) {
 
 std::string name_text(const ast::name_node* node) {
     // TODO: implement full name to string conversion
-    return node ? node->text : std::string();
+    return node ? node->value : std::string();
 }
 
 std::string type_mark_text(const ast::type_mark* node) {
     if(node)
-        return node->name->text;
+        return node->name->value;
     return std::string();
 }
 
@@ -797,11 +797,11 @@ struct reference_resolver {
         node->resolved_ref = lookup(sc, node->text);
     }
     void resolve_expression_node(scope& sc, ast::name_node* node) {
-        if(!node || !node->text.size())
+        if(!node || !node->value.size())
             return;
-        if(node->text.at(0) == '"' || node->text.at(0) == '\'') // name is a character or a string
+        if(node->value.at(0) == '"' || node->value.at(0) == '\'') // name is a character or a string
             return;
-        node->resolved_ref = lookup(sc, node->text);
+        node->resolved_ref = lookup(sc, node->value);
         if(node->slice)
             resolve_range(sc, node->slice->range);
         if(node->arguments)
@@ -827,7 +827,7 @@ struct reference_resolver {
     void resolve_expression_node(scope& sc, ast::qualified_expression* node) {
         if(!node)
             return;
-        node->type_ref = lookup(sc, node->type->name->text);
+        node->type_ref = lookup(sc, node->type->name->value);
         resolve_expression_node(sc, node->aggr);
     }
     void resolve_expression_node(scope& sc, ast::simple_expression* node) {

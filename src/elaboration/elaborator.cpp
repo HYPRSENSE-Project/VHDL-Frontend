@@ -156,7 +156,7 @@ void elaborator::add_design_files(std::vector<ast::design_file*> const& file_set
                         node->packages_in_scope.insert(node->packages_in_scope.end(), use_clauses.begin(), use_clauses.end());
                         node->my_file = df;
                         auto [primary_lib, entity_name] =
-                            library_and_design_name(lib, node->primary ? node->primary->text : ""); // TODO: fix name resolution
+                            library_and_design_name(lib, node->primary ? node->primary->value : ""); // TODO: fix name resolution
                         const auto entity_key = make_key(primary_lib, entity_name);
                         this->architectures_by_entity_key[entity_key].push_back(node);
                         register_design_unit(node, make_arch_key(primary_lib, entity_name, node->identifier), "architecture",
@@ -261,7 +261,7 @@ void elaborator::populate_std_packages() {
     funct_decl->is_function = true;
     auto justify_return_type = parser.anf.create<ast::type_mark>();
     justify_return_type->name = parser.anf.create<ast::name_node>();
-    justify_return_type->name->text = "STRING";
+    justify_return_type->name->value = "STRING";
     funct_decl->return_type = justify_return_type;
     pd_textio->declarations.push_back(funct_decl);
     for(auto i : {"INPUT", "OUTPUT"}) {

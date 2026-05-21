@@ -133,7 +133,6 @@ ast::name_node* parse(vhdlParser::NameContext* ctx, ast::ast_node_factory& anf) 
         return nullptr;
 
     auto node = anf.create<ast::name_node>();
-    node->text = get_text(ctx);
 
     if(auto literal = ctx->name_literal()) {
         node->value = get_literal(literal);
@@ -1602,6 +1601,10 @@ ast::entity_declaration* parse(vhdlParser::Entity_declarationContext* ctx, ast::
     //       KW_END ( KW_ENTITY )? ( identifier )? SEMI
     // ;
     auto node = anf.create<ast::entity_declaration>();
+    auto token = ctx->getStart();
+    auto line = token->getLine();
+    auto line_pos = token->getCharPositionInLine();
+    auto file = token->getTokenSource()->getSourceName();
     node->identifier = ctx->identifier(0)->getText();
     if(auto generic_clause = ctx->generic_clause()) {
         for(auto elem : generic_clause->generic_list()->interface_list()->interface_element()) {
