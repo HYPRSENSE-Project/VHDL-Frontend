@@ -962,6 +962,8 @@ std::vector<ast::block_declarative_item> parse(vhdlParser::Block_declarative_ite
     std::vector<ast::block_declarative_item> res;
     if(auto e = b->entity_declarative_item()) {
         auto decl = parse(e, anf);
+        auto token = b->getToken(0, 0);
+
         res.reserve(res.size() + decl.size());
         for(const auto& elem : decl) {
             std::visit([&res](const auto& value) { res.emplace_back(value); }, elem);

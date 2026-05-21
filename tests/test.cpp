@@ -2,6 +2,8 @@
 // Copyright (c) 2026 MINRES Technologies GmbH
 
 #include "elaborator.h"
+#include "validator.h"
+#include <algorithm>
 #include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <filesystem>
@@ -27,6 +29,9 @@ TEST_CASE("001_minimal", "[single-file][single-instance]") {
     elab.resolve_references();
     auto diags = elab.get_diagnostics();
     REQUIRE(diags.size() == 0);
+    auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
+    REQUIRE(validation_diags.size() == 0);
+
     auto top_units = elab.get_top_modules();
     REQUIRE(top_units.size() == 1);
     REQUIRE(top_units[0]->identifier == "top");
@@ -93,6 +98,8 @@ TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
     elab.resolve_references();
     auto diags = elab.get_diagnostics();
     REQUIRE(diags.size() == 0);
+    auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
+    REQUIRE(validation_diags.size() == 0);
 
     auto top_units = elab.get_top_modules();
     REQUIRE(top_units.size() == 1);
@@ -163,4 +170,18 @@ TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
         REQUIRE(inst->architecture_ref != nullptr);
         REQUIRE(inst->architecture_ref->identifier == "STRUCTURE");
     }
+}
+
+TEST_CASE("validator_reports_unresolved_names", "[validation][single-file]") {
+    parser::parser parser;
+    std::vector<ast::design_file*> files;
+    files.push_back(parser.parse_file(my_path / "inputs/elaboration/invalid/001_unknown_signal.vhd", parser::encoding::UTF_8, "work"));
+    add_ieee_packages(parser, files);
+
+    vhdl_fe::elaborator elab(parser);
+    elab.add_design_files(files);
+    elab.resolve_references();
+    auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
+    REQUIRE(std::find_if(validation_diags.begin(), validation_diags.end(),
+                         [](const auto& diag) { return diag.message == "unresolved name: x"; }) != validation_diags.end());
 }

@@ -584,6 +584,7 @@ struct reference_resolver {
                 if constexpr(std::is_same_v<T, ast::signal_declaration>) {
                     node->type_ref = lookup(sc, type_mark_text(node->type));
                     resolve_resolution(sc, node->resolution);
+                    resolve_constraint(sc, node->constraint);
                 } else if constexpr(std::is_same_v<T, ast::component_declaration>) {
                     resolve_interfaces(sc, node->generic_list);
                     resolve_interfaces(sc, node->port_list);
@@ -667,6 +668,9 @@ struct reference_resolver {
                 using T = std::decay_t<decltype(*node)>;
                 if constexpr(std::is_same_v<T, ast::numeric_type_definition>) {
                     std::visit([this, &sc](auto* range) { resolve_constraint_node(sc, range); }, node->range);
+                } else if constexpr(std::is_same_v<T, ast::unbounded_array_definition>) {
+                    for(auto* mark : node->index_subtype_definitions)
+                        resolve_type_mark(sc, mark);
                 } else if constexpr(std::is_same_v<T, ast::constrained_array_definition>) {
                     for(auto& constraint : node->index_constraints)
                         resolve_discrete_range(sc, constraint);
@@ -677,6 +681,8 @@ struct reference_resolver {
                             resolve_subtype_indication(sc, elem->element_subtype_definition);
                 } else if constexpr(std::is_same_v<T, ast::subtype_indication>) {
                     resolve_subtype_indication(sc, node);
+                } else if constexpr(std::is_same_v<T, ast::type_mark>) {
+                    resolve_type_mark(sc, node);
                 } else if constexpr(std::is_same_v<T, ast::literal_node>) {
                     if(!looks_like_literal(node->text))
                         node->resolved_ref = lookup(sc, node->text);
@@ -796,6 +802,10 @@ struct reference_resolver {
         if(node->text.at(0) == '"' || node->text.at(0) == '\'') // name is a character or a string
             return;
         node->resolved_ref = lookup(sc, node->text);
+        if(node->slice)
+            resolve_range(sc, node->slice->range);
+        if(node->arguments)
+            resolve_associations(sc, node->arguments->associations, sc, nullptr);
     }
     void resolve_expression_node(scope& sc, ast::allocator* node) {
         if(!node)
@@ -848,8 +858,8 @@ struct reference_resolver {
                 using T = std::decay_t<decltype(*node)>;
                 if constexpr(std::is_same_v<T, ast::aggregate>)
                     resolve_expression_node(sc, node);
-                else if constexpr(std::is_same_v<T, ast::literal_node>)
-                    node->resolved_ref = lookup(sc, node->text);
+                else if constexpr(std::is_same_v<T, ast::name_node>)
+                    resolve_expression_node(sc, node);
             },
             target);
     }
@@ -969,6 +979,8 @@ struct reference_resolver {
             return;
         scope child{&sc};
         child.use_clauses = block->use_clauses;
+        if(block->block_spec)
+            resolve_generate_specification(child, block->block_spec->generate_specification);
         for(auto* use : child.use_clauses)
             resolve_use_clause(use, child.lib);
         for(auto& item : block->configuration_items) {
@@ -1247,6 +1259,22 @@ struct reference_resolver {
                 } else if constexpr(std::is_same_v<T, ast::return_statement>) {
                     resolve_expression(sc, node->return_expression);
                 }
+            },
+            item);
+    }
+
+    void resolve_generate_specification(scope& sc, ast::generate_specification_item& item) {
+        std::visit(
+            [this, &sc](auto* node) {
+                if(!node)
+                    return;
+                using T = std::decay_t<decltype(*node)>;
+                if constexpr(std::is_same_v<T, ast::subtype_indication>)
+                    resolve_subtype_indication(sc, node);
+                else if constexpr(std::is_same_v<T, ast::attribute_range> || std::is_same_v<T, ast::explicit_range>)
+                    resolve_constraint_node(sc, node);
+                else
+                    resolve_expression_node(sc, node);
             },
             item);
     }
