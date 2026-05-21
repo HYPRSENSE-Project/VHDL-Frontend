@@ -37,10 +37,10 @@ std::string name_text(const ast::name_node* node) { return node ? node->value : 
 
 std::string type_mark_text(const ast::type_mark* node) { return node && node->name ? node->name->value : std::string(); }
 
-std::string full_selected_name(const ast::selected_name& selected) {
-    if(selected.suffix.empty())
-        return selected.identifier;
-    return selected.identifier + "." + selected.suffix;
+std::string full_selected_name(const ast::selected_name* selected) {
+    if(selected->suffix.empty())
+        return selected->identifier;
+    return selected->identifier + "." + selected->suffix;
 }
 
 std::string full_selected_name(const ast::used_package* used) {
@@ -89,6 +89,10 @@ private:
     void require_ref(const ast::declaration_ref& ref, std::string what, const std::string& name) {
         if(empty_ref(ref))
             add_unresolved(std::move(what), name);
+    }
+
+    void require_ref(const ast::declaration_ref& ref, std::string what, const std::string& name, ast::source_loc*) {
+        require_ref(ref, std::move(what), name);
     }
 
     template <typename T> void require_ptr(T* ptr, std::string what, const std::string& name) {
@@ -153,14 +157,14 @@ private:
         }
         if(clause->suffixes.size() > 1)
             require_ptr(clause->package_ref, "unresolved package reference", package);
-        require_ref(clause->selected_ref, "unresolved selected use reference", name);
+        require_ref(clause->selected_ref, "unresolved selected use reference", name, clause);
     }
 
     void validate_context_reference(ast::context_reference* ref) {
         if(!ref)
             return;
         for(const auto& selected : ref->selected_names)
-            require_ref(selected.resolved_ref, "unresolved context reference", full_selected_name(selected));
+            require_ref(selected->resolved_ref, "unresolved context reference", full_selected_name(selected), selected);
     }
 
     template <typename Vector> void validate_interfaces(const Vector& interfaces) {
@@ -189,7 +193,7 @@ private:
                             validate_interfaces(spec->formal_parameter_list);
                             if constexpr(std::is_same_v<S, ast::interface_function_specification>) {
                                 require_ref(spec->return_type_ref, "unresolved interface function return type",
-                                            type_mark_text(spec->return_type_mark));
+                                            type_mark_text(spec->return_type_mark), spec->return_type_mark);
                             }
                         },
                         node->nterface_subprogram_specification);
@@ -239,24 +243,38 @@ private:
                 } else if constexpr(std::is_same_v<T, ast::alias_declaration>) {
                     validate_subtype_indication(node->indication);
                     if(!node->name.empty())
-                        require_ref(node->name_ref, "unresolved alias target", node->name);
-                    for(size_t i = 0; i < node->type_marks.size(); ++i) {
-                        const auto name = type_mark_text(node->type_marks[i]);
-                        if(i >= node->type_mark_refs.size())
-                            add_unresolved("unresolved alias signature type", name);
-                        else
-                            require_ref(node->type_mark_refs[i], "unresolved alias signature type", name);
+                        require_ref(node->name_ref, "unresolved alias target", node->name, node);
+                    if(const auto* signature = node->signatue) {
+                        for(size_t i = 0; i < signature->type_marks.size(); ++i) {
+                            const auto name = type_mark_text(signature->type_marks[i]);
+                            if(i >= node->type_mark_refs.size())
+                                add_unresolved("unresolved alias signature type", name);
+                            else
+                                require_ref(node->type_mark_refs[i], "unresolved alias signature type", name, signature->type_marks[i]);
+                        }
+                        if(signature->return_type_mark)
+                            require_ref(node->return_type_mark_ref, "unresolved alias return type", type_mark_text(signature->return_type_mark),
+                                        signature->return_type_mark);
                     }
-                    if(node->return_type_mark)
-                        require_ref(node->return_type_mark_ref, "unresolved alias return type", type_mark_text(node->return_type_mark));
                 } else if constexpr(std::is_same_v<T, ast::attribute_declaration>) {
-                    require_ref(node->type_ref, "unresolved attribute type", type_mark_text(node->type));
+                    require_ref(node->type_ref, "unresolved attribute type", type_mark_text(node->type), node->type);
                 } else if constexpr(std::is_same_v<T, ast::attribute_specification>) {
-                    for(size_t i = 0; i < node->entity_name_list.size(); ++i) {
-                        if(i >= node->entity_refs.size())
-                            add_unresolved("unresolved attribute entity", node->entity_name_list[i]);
+                    if(std::holds_alternative<ast::entity_designator_list*>(node->entity_names)) {
+                        const auto* names = std::get<ast::entity_designator_list*>(node->entity_names);
+                        for(size_t i = 0; i < names->name_list.size(); ++i) {
+                            const auto* designator = names->name_list[i];
+                            const auto name = name_text(designator->entity_tag);
+                            if(i >= node->entity_refs.size())
+                                add_unresolved("unresolved attribute entity", name);
+                            else
+                                require_ref(node->entity_refs[i], "unresolved attribute entity", name);
+                        }
+                    } else {
+                        const auto* name = std::get<ast::literal_node*>(node->entity_names);
+                        if(node->entity_refs.empty())
+                            add_unresolved("unresolved attribute entity", name ? name->text : std::string());
                         else
-                            require_ref(node->entity_refs[i], "unresolved attribute entity", node->entity_name_list[i]);
+                            require_ref(node->entity_refs.front(), "unresolved attribute entity", name ? name->text : std::string());
                     }
                     validate_expression(node->expr);
                 } else if constexpr(std::is_same_v<T, ast::group_declaration>) {

@@ -117,10 +117,10 @@ void print_statement_components(std::ostream& os, const ast::concurrent_statemen
         stmt->statement);
 }
 
-void print_selected_name(std::ostream& os, const ast::selected_name& name) {
-    os << name.identifier;
-    if(!name.suffix.empty())
-        os << '.' << name.suffix;
+void print_selected_name(std::ostream& os, const ast::selected_name* name) {
+    os << name->identifier;
+    if(!name->suffix.empty())
+        os << '.' << name->suffix;
 }
 } // namespace
 

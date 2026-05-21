@@ -79,10 +79,12 @@ std::string full_selected_name(const ast::used_package* used) {
     return oss.str();
 }
 
-std::string full_selected_name(const ast::selected_name& selected) {
-    if(selected.suffix.empty())
-        return selected.identifier;
-    return selected.identifier + "." + selected.suffix;
+std::string full_selected_name(const ast::selected_name* selected) {
+    if(!selected)
+        return {};
+    if(selected->suffix.empty())
+        return selected->identifier;
+    return selected->identifier + "." + selected->suffix;
 }
 
 bool is_all_name(const std::string& value) { return canonicalize(value) == "all"; }
@@ -328,7 +330,7 @@ struct reference_resolver {
             return;
         for(auto& selected : ref->selected_names) {
             if(auto* context = elab.find_context(lib_name, full_selected_name(selected)))
-                selected.resolved_ref = context;
+                selected->resolved_ref = context;
         }
     }
 
@@ -609,15 +611,25 @@ struct reference_resolver {
                     resolve_subtype_indication(sc, node->indication);
                     node->name_ref = lookup(sc, node->name);
                     node->type_mark_refs.clear();
-                    for(const auto& type_mark : node->type_marks)
-                        node->type_mark_refs.push_back(lookup(sc, type_mark_text(type_mark)));
-                    node->return_type_mark_ref = lookup(sc, type_mark_text(node->return_type_mark));
+                    node->return_type_mark_ref = {};
+                    if(const auto* signature = node->signatue) {
+                        for(const auto& type_mark : signature->type_marks)
+                            node->type_mark_refs.push_back(lookup(sc, type_mark_text(type_mark)));
+                        node->return_type_mark_ref = lookup(sc, type_mark_text(signature->return_type_mark));
+                    }
                 } else if constexpr(std::is_same_v<T, ast::attribute_declaration>) {
                     node->type_ref = lookup(sc, type_mark_text(node->type));
                 } else if constexpr(std::is_same_v<T, ast::attribute_specification>) {
                     node->entity_refs.clear();
-                    for(const auto& name : node->entity_name_list)
-                        node->entity_refs.push_back(lookup(sc, name));
+                    if(std::holds_alternative<ast::entity_designator_list*>(node->entity_names)) {
+                        auto en = std::get<ast::entity_designator_list*>(node->entity_names);
+                        for(const auto& name : en->name_list) {
+                            node->entity_refs.push_back(lookup(sc, name->entity_tag));
+                        }
+                    } else {
+                        auto en = std::get<ast::literal_node*>(node->entity_names);
+                        node->entity_refs.push_back(lookup(sc, en->text));
+                    }
                     resolve_expression(sc, node->expr);
                 } else if constexpr(std::is_same_v<T, ast::group_declaration>) {
                     node->template_ref = lookup(sc, node->name);

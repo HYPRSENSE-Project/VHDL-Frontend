@@ -48,6 +48,7 @@ ast::expression_item parse(vhdl_antlr::vhdlParser::ConditionContext*, ast::ast_n
 std::vector<ast::association_element*> parse(vhdl_antlr::vhdlParser::Association_listContext*, ast::ast_node_factory&);
 ast::name_node* parse(vhdl_antlr::vhdlParser::NameContext*, ast::ast_node_factory&);
 ast::type_mark* parse(vhdl_antlr::vhdlParser::Type_markContext*, ast::ast_node_factory&);
+ast::entity_designator* parse(vhdl_antlr::vhdlParser::Entity_designatorContext*, ast::ast_node_factory&);
 void parse(vhdl_antlr::vhdlParser::Generate_statement_bodyContext*, ast::generate_statement_body&, ast::ast_node_factory&);
 std::vector<ast::choice_item> parse(vhdl_antlr::vhdlParser::ChoicesContext*, ast::ast_node_factory&);
 void parse(vhdl_antlr::vhdlParser::Generate_statement_body_with_begin_endContext*, ast::generate_statement_body&, ast::ast_node_factory&);
@@ -97,6 +98,8 @@ ast::concurrent_signal_assignment_any* parse(vhdl_antlr::vhdlParser::Concurrent_
 ast::concurrent_selected_signal_assignment* parse(vhdl_antlr::vhdlParser::Concurrent_selected_signal_assignmentContext* selected,
                                                   ast::ast_node_factory& anf);
 std::vector<ast::sequential_statement_item> parse(vhdl_antlr::vhdlParser::Sequence_of_statementsContext* ctx, ast::ast_node_factory& anf);
-
+ast::name_node* parse(vhdl_antlr::vhdlParser::Entity_tagContext* ctx, ast::ast_node_factory& anf);
+void parse(vhdl_antlr::vhdlParser::SignatureContext* ctx, std::vector<ast::type_mark*>& type_marks, ast::type_mark*& return_type_mark,
+           ast::ast_node_factory& anf);
 } // namespace context
 } // namespace parser

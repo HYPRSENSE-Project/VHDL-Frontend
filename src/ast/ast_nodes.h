@@ -402,7 +402,13 @@ using target_item = std::variant<
 
 // clang-format on
 
-struct literal_node {
+struct source_loc {
+    std::string file;
+    unsigned line;
+    unsigned col;
+};
+
+struct literal_node : source_loc {
     std::string text;
     declaration_ref resolved_ref;
 };
@@ -412,7 +418,7 @@ struct name_slice {
 };
 
 struct name_attribute {
-    std::string signature;
+    signature* signatue{nullptr};
     std::string designator;
 };
 
@@ -420,7 +426,7 @@ struct name_arguments {
     std::vector<association_element*> associations;
 };
 
-struct name_node {
+struct name_node : source_loc {
     // std::string text;
     std::string value;
     name_kind_e kind{name_kind_e::SIMPLE};
@@ -432,7 +438,7 @@ struct name_node {
     declaration_ref resolved_ref;
 };
 
-struct type_mark {
+struct type_mark : source_loc {
     name_node* name{nullptr};
     // elaborated members
     declaration_ref resolved_ref;
@@ -447,7 +453,7 @@ struct library_clause {
     std::vector<std::string> names;
 };
 
-struct used_package {
+struct used_package : source_loc {
     std::string identifier;
     std::vector<std::string> suffixes;
     // elaborated members
@@ -460,7 +466,7 @@ struct use_clause {
 };
 
 struct context_reference {
-    std::vector<selected_name> selected_names;
+    std::vector<selected_name*> selected_names;
 };
 
 struct array_constraint {
@@ -562,7 +568,7 @@ struct package_instantiation_declaration {
     package_declaration* target_package_ref{nullptr};
 };
 
-struct selected_name {
+struct selected_name : source_loc {
     std::string identifier;
     std::string suffix;
     // elaborated members
@@ -668,7 +674,7 @@ struct explicit_range {
 
 struct attribute_range {
     std::string name;
-    std::string attribute_designator;
+    std::string attribute_designator; // TODO: implement ast for attribute_designator
     // elaborated members
     declaration_ref prefix_ref;
 };
@@ -700,13 +706,16 @@ struct file_declaration {
     expression_item file_logical_name;
 };
 
-struct alias_declaration {
+struct signature {
+    std::vector<type_mark*> type_marks;
+    type_mark* return_type_mark{nullptr};
+};
+
+struct alias_declaration : source_loc {
     std::string alias_designator;
     subtype_indication* indication;
     std::string name;
-    // signature
-    std::vector<type_mark*> type_marks;
-    type_mark* return_type_mark;
+    signature* signatue{nullptr};
     // elaborated members
     declaration_ref name_ref;
     std::vector<declaration_ref> type_mark_refs;
@@ -782,9 +791,18 @@ struct interface_package_declaration {
     package_declaration* package_ref{nullptr};
 };
 
+struct entity_designator {
+    name_node* entity_tag{nullptr};
+    signature* signatue{nullptr};
+};
+
+struct entity_designator_list {
+    std::vector<entity_designator*> name_list;
+};
+
 struct attribute_specification {
-    std::string attribute_designator;
-    std::vector<std::string> entity_name_list;
+    std::string attribute_designator; // TODO: implement ast for attribute_designator
+    std::variant<literal_node*, entity_designator_list*> entity_names;
     entity_class_e entity_class;
     expression_item expr;
     // elaborated members

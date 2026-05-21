@@ -18,13 +18,11 @@ architecture_body* architecture_body::clone(ast_node_factory& anf) {
     auto ret = anf.create<architecture_body>();
     *ret = *this;
     ret->concurrent_statements.clear();
-
     for(auto* stmt : concurrent_statements) {
         if(!stmt) {
             ret->concurrent_statements.push_back(nullptr);
             continue;
         }
-
         auto* stmt_copy = anf.create<concurrent_statement>();
         *stmt_copy = *stmt;
         std::visit(
@@ -39,7 +37,6 @@ architecture_body* architecture_body::clone(ast_node_factory& anf) {
             stmt->statement);
         ret->concurrent_statements.push_back(stmt_copy);
     }
-
     return ret;
 }
 

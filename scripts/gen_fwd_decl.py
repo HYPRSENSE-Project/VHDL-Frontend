@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+##
+"""Parses ast_nodes and creates forward declarations.
+"""
 import sys
 from clang.cindex import Index, CursorKind, Config
 

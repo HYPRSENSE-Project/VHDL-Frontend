@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+##
+
 """Expand raw STL helper class nodes in the AST PlantUML diagram.
 
 The generated AST diagram uses hashed PlantUML aliases for template types, for

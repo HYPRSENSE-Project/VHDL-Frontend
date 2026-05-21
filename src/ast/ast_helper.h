@@ -103,6 +103,27 @@ inline const char* to_string(operation_kind_e op) noexcept {
 
 inline std::string to_string(const ast::type_mark* type) { return type && type->name ? to_string(type->name) : std::string{}; }
 
+inline std::string to_string(const ast::signature* signature) {
+    if(!signature)
+        return {};
+    std::string ret{"["};
+    bool has_entry = false;
+    for(const auto* type_mark : signature->type_marks) {
+        if(has_entry)
+            ret += ", ";
+        ret += to_string(type_mark);
+        has_entry = true;
+    }
+    if(signature->return_type_mark) {
+        if(has_entry)
+            ret += " ";
+        ret += "return ";
+        ret += to_string(signature->return_type_mark);
+    }
+    ret.push_back(']');
+    return ret;
+}
+
 inline std::string join_binary(std::string lhs, const char* op, std::string rhs) {
     if(lhs.empty())
         return rhs;
@@ -363,7 +384,7 @@ inline std::string to_string(const ast::name_node* n) {
         auto prefix = to_string(n->prefix);
         std::string ret = prefix;
         if(n->attribute) {
-            ret += n->attribute->signature;
+            ret += to_string(n->attribute->signatue);
             ret.push_back('\'');
             ret += n->attribute->designator;
         }
