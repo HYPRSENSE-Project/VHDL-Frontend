@@ -12,4 +12,5 @@
         "--compile-commands-dir=${workspaceFolder}/build"
     ],
     "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "cmake.ctest.neverDebugTestsWithLaunchConfiguration": false,
 }

@@ -5,12 +5,193 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Catch2 001_minimal",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/tests/tests",
+            "args": [
+                "001_minimal"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Catch2 zamia_add4_minimal",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/tests/tests",
+            "args": [
+                "zamia_add4_minimal"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Catch2 validator_reports_unresolved_names",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/tests/tests",
+            "args": [
+                "validator_reports_unresolved_names"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) 001_minimal",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/src/vhdl_fe",
+            "args": [
+                "tests/minimal/valid/basic/001_minimal.vhd",
+                "-v"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) parse_011_mux_process",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/src/vhdl_fe",
+            "args": [
+                "tests/minimal/valid/combinational/011_mux_process.vhd",
+                "-v"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) VHDL Test File",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/vhdl_fe",
+            "args": [
+                "tests/zamiacad/examples/AppendTest.vhd",
+                "-v"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Python Debugger: gen_fwd_decl.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scripts/gen_fwd_decl.py",
+            "console": "integratedTerminal",
+            "args": [
+                "src/ast/ast_nodes.h"
+            ],
+            "cwd": "${workspaceFolder}",
+            "python": "/home/projects/HYPRSENSE/eyck/workarea/.direnv/python-3.9/bin/python3"
+        },
+        {
             "type": "gdb",
             "request": "launch",
             "name": "vhdl_fe add4",
+            "program": "${workspaceFolder}/build/Debug/src/vhdl_fe",
+            "arguments": "-v tests/inputs/elaboration/add4/va.vhdl tests/inputs/elaboration/add4/va.vhdl tests/inputs/elaboration/add4/ha.vhdl",
+            "cwd": "${workspaceFolder}",
+            "initCommands": []
+        },
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "vhdl_fe 001_minimal",
             "program": "${workspaceFolder}/build/Debug/vhdl_fe",
-            "arguments": "tests/zamiacad/examples/add4/add4.vhdl tests/zamiacad/examples/add4/va.vhdl tests/zamiacad/examples/add4/ha.vhdl",
-            "cwd": "${workspaceFolder}"
+            "arguments": "tests/minimal/valid/basic/001_minimal.vhd -v",
+            "cwd": "${workspaceFolder}",
+            "initCommands": []
         },
         {
             "type": "gdb",
@@ -19,6 +200,17 @@
             "program": "${workspaceFolder}/build/Debug/vhdl_fe",
             "arguments": "tests/zamiacad/examples/gcd/tb_latw_gcd.vhd tests/zamiacad/examples/gcd/latw_gcd.vhd",
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "vhdl_fe configuration",
+            "program": "${workspaceFolder}/build/Debug/vhdl_fe",
+            "arguments": "tests/minimal/valid/configuration/comparison_conf.vhd tests/minimal/valid/configuration/comparison_tb.vhd tests/minimal/valid/configuration/comparison.vhd tests/minimal/valid/configuration/greater_than.vhd",
+            "cwd": "${workspaceFolder}",
+            "initCommands": [
+                "disable pretty-printer"
+            ]
         }
     ]
 }
