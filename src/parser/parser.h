@@ -9,8 +9,8 @@
 #include "encoding_conversions.h"
 #include "syntax_error_logger.h"
 #include <antlr4-runtime.h>
+#include <array>
 #include <embedded_vhdl.h>
-#include <stdexcept>
 #include <string_view>
 #include <vhdlParser/vhdlLexer.h>
 #include <vhdlParser/vhdlParser.h>
@@ -38,7 +38,7 @@ struct parser {
      * @return Pointers to the parsed design files.
      */
     std::vector<ast::design_file*> load_standardized_packages() {
-        std::vector<ast::design_file*> files;
+        std::vector<ast::design_file*> files = create_std_packages();
         const auto& resources = embedded_vhdl::all();
         files.reserve(resources.size());
         for(const auto& resource : resources) {
@@ -82,6 +82,106 @@ struct parser {
         antlr4::ANTLRInputStream input_stream(_to_utf8(input_str, enc));
         input_stream.name = source_name;
         return _parse(input_stream, lib_name);
+    }
+
+    std::vector<ast::design_file*> create_std_packages() {
+        auto df_standard = anf.create<ast::design_file>();
+        df_standard->lib_name = "STD";
+        auto pd_standard = anf.create<ast::package_declaration>();
+        pd_standard->my_file = df_standard;
+        pd_standard->identifier = "STANDARD";
+        for(auto i : {
+                "DIRECTION",
+                "BOOLEAN",
+                "BIT",
+                "CHARACTER",
+                "SEVERITY_LEVEL",
+                "INTEGER",
+                "REAL",
+                "TIME",
+                "STRING",
+                "BOOLEAN_VECTOR",
+                "BIT_VECTOR",
+                "INTEGER_VECTOR",
+                "REAL_VECTOR",
+                "TIME_VECTOR",
+                "FILE_OPEN_KIND",
+                "FILE_OPEN_STATUS",
+                "FILE_OPEN_STATE",
+                "FILE_ORIGIN_KIND",
+            }) {
+            auto type_decl = anf.create<ast::type_declaration>();
+            type_decl->identifier = i;
+            pd_standard->declarations.push_back(type_decl);
+        }
+        for(auto i : {"DELAY_LENGTH", "NATURAL", "POSITIVE"}) {
+            auto type_decl = anf.create<ast::subtype_declaration>();
+            type_decl->identifier = i;
+            pd_standard->declarations.push_back(type_decl);
+        }
+        auto now_decl = anf.create<ast::subprogram_declaration>();
+        now_decl->designator = "NOW";
+        pd_standard->declarations.push_back(now_decl);
+        auto foreign_decl = anf.create<ast::attribute_declaration>();
+        foreign_decl->identifier = "FOREIGN";
+        foreign_decl->type = anf.create<ast::type_mark>();
+        foreign_decl->type->name = anf.create<ast::name_node>();
+        foreign_decl->type->name->value = "STRING";
+        pd_standard->declarations.push_back(foreign_decl);
+        df_standard->units.push_back(pd_standard);
+        auto df_textio = anf.create<ast::design_file>();
+        df_textio->lib_name = "STD";
+        auto pd_textio = anf.create<ast::package_declaration>();
+        pd_textio->my_file = df_textio;
+        pd_textio->identifier = "TEXTIO";
+        for(auto i : {"LINE", "LINE_VECTOR", "TEXT", "SIDE"}) {
+            auto type_decl = anf.create<ast::type_declaration>();
+            type_decl->identifier = i;
+            pd_textio->declarations.push_back(type_decl);
+        }
+        auto width_decl = anf.create<ast::subtype_declaration>();
+        width_decl->identifier = "WIDTH";
+        pd_textio->declarations.push_back(width_decl);
+        //   function JUSTIFY (VALUE: STRING; JUSTIFIED: SIDE := RIGHT; FIELD: WIDTH := 0 ) return STRING;
+        auto funct_decl = anf.create<ast::subprogram_declaration>();
+        funct_decl->designator = "JUSTIFY";
+        funct_decl->is_function = true;
+        auto justify_return_type = anf.create<ast::type_mark>();
+        justify_return_type->name = anf.create<ast::name_node>();
+        justify_return_type->name->value = "STRING";
+        funct_decl->return_type = justify_return_type;
+        pd_textio->declarations.push_back(funct_decl);
+        for(auto i : {"INPUT", "OUTPUT"}) {
+            auto file_decl = anf.create<ast::file_declaration>();
+            file_decl->identifier = i;
+            pd_textio->declarations.push_back(file_decl);
+        }
+        for(auto i : {"READLINE", "OREAD", "HREAD", "WRITELINE", "TEE", "WRITE", "OWRITE", "HWRITE"}) {
+            auto file_decl = anf.create<ast::subprogram_declaration>();
+            file_decl->designator = i;
+            pd_textio->declarations.push_back(file_decl);
+        }
+        std::array<std::tuple<std::string, std::string>, 11> aliases{
+            std::make_tuple("STRING_READ", "SREAD"),
+            {"BREAD", "READ"},
+            {"BINARY_READ", "READ"},
+            {"OCTAL_READ", "OREAD"},
+            {"HEX_READ", "HREAD"},
+            {"SWRITE", "WRITE"},
+            {"STRING_WRITE", "WRITE"},
+            {"BWRITE", "WRITE"},
+            {"BINARY_WRITE", "WRITE"},
+            {"OCTAL_WRITE", "OWRITE"},
+            {"HEX_WRITE", "HWRITE"},
+        };
+        for(auto i : aliases) {
+            auto alias_decl = anf.create<ast::alias_declaration>();
+            alias_decl->alias_designator = std::get<0>(i);
+            alias_decl->name = std::get<1>(i);
+            pd_textio->declarations.push_back(alias_decl);
+        }
+        df_textio->units.push_back(pd_textio);
+        return {df_standard, df_textio};
     }
 
 private:

@@ -14,9 +14,7 @@
 namespace vhdl_fe {
 
 elaborator::elaborator(parser::parser& p)
-: parser(p) {
-    populate_std_packages();
-}
+: parser(p) {}
 
 void elaborator::add_diagnostic(ast::error_data::error_kind_t kind, std::string message) {
     diagnostics.push_back({kind, std::move(message)});
@@ -201,101 +199,5 @@ std::vector<ast::entity_declaration*> elaborator::get_top_modules() const {
     }
 
     return result;
-}
-void elaborator::populate_std_packages() {
-    auto df_standard = parser.anf.create<ast::design_file>();
-    df_standard->lib_name = "STD";
-    auto pd_standard = parser.anf.create<ast::package_declaration>();
-    pd_standard->my_file = df_standard;
-    pd_standard->identifier = "STANDARD";
-    for(auto i : {
-            "DIRECTION",
-            "BOOLEAN",
-            "BIT",
-            "CHARACTER",
-            "SEVERITY_LEVEL",
-            "INTEGER",
-            "REAL",
-            "TIME",
-            "STRING",
-            "BOOLEAN_VECTOR",
-            "BIT_VECTOR",
-            "INTEGER_VECTOR",
-            "REAL_VECTOR",
-            "TIME_VECTOR",
-            "FILE_OPEN_KIND",
-            "FILE_OPEN_STATUS",
-            "FILE_OPEN_STATE",
-            "FILE_ORIGIN_KIND",
-        }) {
-        auto type_decl = parser.anf.create<ast::type_declaration>();
-        type_decl->identifier = i;
-        pd_standard->declarations.push_back(type_decl);
-    }
-    for(auto i : {"DELAY_LENGTH", "NATURAL", "POSITIVE"}) {
-        auto type_decl = parser.anf.create<ast::subtype_declaration>();
-        type_decl->identifier = i;
-        pd_standard->declarations.push_back(type_decl);
-    }
-    auto now_decl = parser.anf.create<ast::subprogram_declaration>();
-    now_decl->designator = "NOW";
-    pd_standard->declarations.push_back(now_decl);
-    auto foreign_decl = parser.anf.create<ast::attribute_declaration>();
-    foreign_decl->identifier = "FOREIGN";
-    pd_standard->declarations.push_back(foreign_decl);
-    df_standard->units.push_back(pd_standard);
-    auto df_textio = parser.anf.create<ast::design_file>();
-    df_textio->lib_name = "STD";
-    auto pd_textio = parser.anf.create<ast::package_declaration>();
-    pd_textio->my_file = df_textio;
-    pd_textio->identifier = "TEXTIO";
-    for(auto i : {"LINE", "LINE_VECTOR", "TEXT", "SIDE"}) {
-        auto type_decl = parser.anf.create<ast::type_declaration>();
-        type_decl->identifier = i;
-        pd_textio->declarations.push_back(type_decl);
-    }
-    auto width_decl = parser.anf.create<ast::subtype_declaration>();
-    width_decl->identifier = "WIDTH";
-    pd_textio->declarations.push_back(width_decl);
-    //   function JUSTIFY (VALUE: STRING; JUSTIFIED: SIDE := RIGHT; FIELD: WIDTH := 0 ) return STRING;
-    auto funct_decl = parser.anf.create<ast::subprogram_declaration>();
-    funct_decl->designator = "JUSTIFY";
-    funct_decl->is_function = true;
-    auto justify_return_type = parser.anf.create<ast::type_mark>();
-    justify_return_type->name = parser.anf.create<ast::name_node>();
-    justify_return_type->name->value = "STRING";
-    funct_decl->return_type = justify_return_type;
-    pd_textio->declarations.push_back(funct_decl);
-    for(auto i : {"INPUT", "OUTPUT"}) {
-        auto file_decl = parser.anf.create<ast::file_declaration>();
-        file_decl->identifier = i;
-        pd_textio->declarations.push_back(file_decl);
-    }
-    for(auto i : {"READLINE", "OREAD", "HREAD", "WRITELINE", "TEE", "WRITE", "OWRITE", "HWRITE"}) {
-        auto file_decl = parser.anf.create<ast::subprogram_declaration>();
-        file_decl->designator = i;
-        pd_textio->declarations.push_back(file_decl);
-    }
-    std::array<std::tuple<std::string, std::string>, 11> aliases{
-        std::make_tuple("STRING_READ", "SREAD"),
-        {"BREAD", "READ"},
-        {"BINARY_READ", "READ"},
-        {"OCTAL_READ", "OREAD"},
-        {"HEX_READ", "HREAD"},
-        {"SWRITE", "WRITE"},
-        {"STRING_WRITE", "WRITE"},
-        {"BWRITE", "WRITE"},
-        {"BINARY_WRITE", "WRITE"},
-        {"OCTAL_WRITE", "OWRITE"},
-        {"HEX_WRITE", "HWRITE"},
-    };
-    for(auto i : aliases) {
-        auto alias_decl = parser.anf.create<ast::alias_declaration>();
-        alias_decl->alias_designator = std::get<0>(i);
-        alias_decl->name = std::get<1>(i);
-        pd_textio->declarations.push_back(alias_decl);
-    }
-    df_textio->units.push_back(pd_textio);
-    add_design_files({df_standard, df_textio});
 }
 } // namespace vhdl_fe

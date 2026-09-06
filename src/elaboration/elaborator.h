@@ -32,7 +32,6 @@ struct elaborator {
 private:
     friend struct reference_resolver;
     friend struct linker;
-    void populate_std_packages();
     void add_diagnostic(ast::error_data::error_kind_t kind, std::string message);
     // void link_primary_and_secondary_units();
 

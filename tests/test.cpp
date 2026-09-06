@@ -17,16 +17,16 @@ auto const root_path = my_path.parent_path();
 
 TEST_CASE("001_minimal", "[single-file][single-instance]") {
     parser::parser parser;
-    std::vector<ast::design_file*> files;
-    files.push_back(parser.parse_file(my_path / "inputs/elaboration/basic/001_minimal.vhd", parser::encoding::UTF_8, "work"));
+    std::vector<ast::design_file*> files = parser.create_std_packages();
     files.push_back(parser.parse_file("ieee/std_logic_1164.vhdl", parser::encoding::UTF_8, "ieee"));
     files.push_back(parser.parse_file("ieee/numeric_bit.vhdl", parser::encoding::UTF_8, "ieee"));
+    files.push_back(parser.parse_file(my_path / "inputs/elaboration/basic/001_minimal.vhd", parser::encoding::UTF_8, "work"));
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files({files});
     elab.resolve_references();
     auto elab_diags = elab.get_diagnostics();
     REQUIRE(elab_diags.size() == 0);
-    auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
+    auto validation_diags = vhdl_fe::validate_resolved_ast({files.back()});
     REQUIRE(validation_diags.size() == 0);
 
     auto top_units = elab.get_top_modules();
@@ -84,19 +84,19 @@ TEST_CASE("001_minimal", "[single-file][single-instance]") {
 
 TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
     parser::parser parser;
-    std::vector<ast::design_file*> files;
-    for(auto i : std::array<std::string, 3>{"inputs/elaboration/add4/add4.vhdl", "inputs/elaboration/add4/ha.vhdl",
-                                            "inputs/elaboration/add4/va.vhdl"}) {
-        files.push_back(parser.parse_file(my_path / i, parser::encoding::UTF_8, "work"));
-    }
+    std::vector<ast::design_file*> files = parser.create_std_packages();
     files.push_back(parser.parse_file("ieee/std_logic_1164.vhdl", parser::encoding::UTF_8, "ieee"));
     files.push_back(parser.parse_file("ieee/numeric_bit.vhdl", parser::encoding::UTF_8, "ieee"));
+    for(auto i : std::array<std::string, 3>{"inputs/elaboration/add4/va.vhdl", "inputs/elaboration/add4/ha.vhdl",
+                                            "inputs/elaboration/add4/add4.vhdl"}) {
+        files.push_back(parser.parse_file(my_path / i, parser::encoding::UTF_8, "work"));
+    }
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files({files});
     elab.resolve_references();
     auto elab_diags = elab.get_diagnostics();
     REQUIRE(elab_diags.size() == 0);
-    auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
+    auto validation_diags = vhdl_fe::validate_resolved_ast({files.back()});
     REQUIRE(validation_diags.size() == 0);
 
     auto top_units = elab.get_top_modules();
@@ -176,16 +176,16 @@ TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
 
 TEST_CASE("validator_reports_unresolved_names", "[validation][single-file]") {
     parser::parser parser;
-    std::vector<ast::design_file*> files;
-    files.push_back(parser.parse_file(my_path / "inputs/elaboration/invalid/001_unknown_signal.vhd", parser::encoding::UTF_8, "work"));
+    std::vector<ast::design_file*> files = parser.create_std_packages();
     files.push_back(parser.parse_file("ieee/std_logic_1164.vhdl", parser::encoding::UTF_8, "ieee"));
-    files.push_back(parser.parse_file("ieee/numeric_bit.vhdl", parser::encoding::UTF_8, "ieee"));
+    files.push_back(parser.parse_file(my_path / "inputs/elaboration/invalid/001_unknown_signal.vhd", parser::encoding::UTF_8, "work"));
     vhdl_fe::elaborator elab(parser);
     elab.add_design_files(files);
     elab.resolve_references();
     auto elab_diags = elab.get_diagnostics();
     REQUIRE(elab_diags.size() == 0);
-    auto validation_diags = vhdl_fe::validate_resolved_ast({files.front()});
+    auto validation_diags = vhdl_fe::validate_resolved_ast({files.back()});
+    REQUIRE(validation_diags.size() > 0);
     REQUIRE(std::find_if(validation_diags.begin(), validation_diags.end(),
                          [](const auto& diag) { return diag.message == "unresolved name: x"; }) != validation_diags.end());
 }
