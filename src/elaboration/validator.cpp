@@ -80,25 +80,26 @@ public:
 private:
     std::vector<ast::error_data> diagnostics;
 
-    void add_unresolved(std::string what, const std::string& name) {
-        if(name.empty())
-            diagnostics.push_back({ast::error_data::error_kind_t::VALIDATIONERROR, std::move(what)});
-        else
-            diagnostics.push_back({ast::error_data::error_kind_t::VALIDATIONERROR, std::move(what) + ": " + name});
+    void add_unresolved(std::string what, const std::string& name, ast::source_loc* src = nullptr) {
+        ast::source_loc loc;
+        if(src)
+            loc = *src;
+        auto message = std::move(what);
+        if(!name.empty()) {
+            message += ": ";
+            message += name;
+        }
+        diagnostics.push_back({ast::error_data::error_kind_t::VALIDATIONERROR, std::move(message), loc.file, loc.line, loc.col});
     }
 
-    void require_ref(const ast::declaration_ref& ref, std::string what, const std::string& name) {
+    void require_ref(const ast::declaration_ref& ref, std::string what, const std::string& name, ast::source_loc* src = nullptr) {
         if(empty_ref(ref))
-            add_unresolved(std::move(what), name);
+            add_unresolved(std::move(what), name, src);
     }
 
-    void require_ref(const ast::declaration_ref& ref, std::string what, const std::string& name, ast::source_loc*) {
-        require_ref(ref, std::move(what), name);
-    }
-
-    template <typename T> void require_ptr(T* ptr, std::string what, const std::string& name) {
+    template <typename T> void require_ptr(T* ptr, std::string what, const std::string& name, ast::source_loc* src = nullptr) {
         if(!ptr)
-            add_unresolved(std::move(what), name);
+            add_unresolved(std::move(what), name, src);
     }
 
     void validate_design_file(ast::design_file* file) {

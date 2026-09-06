@@ -404,8 +404,8 @@ using target_item = std::variant<
 
 struct source_loc {
     std::string file;
-    unsigned line;
-    unsigned col;
+    unsigned line{0};
+    unsigned col{0};
 };
 
 struct literal_node : source_loc {

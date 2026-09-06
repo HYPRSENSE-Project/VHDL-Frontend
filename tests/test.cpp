@@ -143,7 +143,7 @@ TEST_CASE("zamia_add4_minimal", "[multi-file][hierarchy]") {
     REQUIRE(sum->subtype_indic != nullptr);
     REQUIRE(sum->subtype_indic->type->name->kind == ast::name_kind_e::SLICE);
     REQUIRE(to_string(sum->subtype_indic->type->name) == "bit_vector(3 downto 0)");
-    REQUIRE_FALSE(std::holds_alternative<std::monostate>(sum->subtype_indic->type->resolved_ref));
+    REQUIRE(std::get<ast::type_declaration*>(sum->subtype_indic->type->resolved_ref));
 
     auto const* carry_out = std::get<ast::interface_signal_declaration*>(top_units[0]->port_list[4]);
     REQUIRE(carry_out != nullptr);
