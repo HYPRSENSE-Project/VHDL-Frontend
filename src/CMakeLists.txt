@@ -1,4 +1,5 @@
 add_subdirectory(grammar)
+add_subdirectory(resources)
 add_subdirectory(ast)
 add_subdirectory(parser)
 add_subdirectory(elaboration)

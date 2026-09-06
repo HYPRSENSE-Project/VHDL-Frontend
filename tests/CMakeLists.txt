@@ -8,7 +8,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests test.cpp)
+add_executable(tests test.cpp embedded_vhdl_test.cpp)
 target_compile_definitions(tests PRIVATE $<$<CONFIG:DEBUG>:_GLIBCXX_DEBUG>)
 target_link_libraries(tests PRIVATE vhdl_fe::parser vhdl_fe::elaboration Catch2::Catch2WithMain)
 
