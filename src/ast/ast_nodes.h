@@ -408,25 +408,25 @@ struct source_loc {
     unsigned col{0};
 };
 
-struct literal_node : source_loc {
+struct literal_node : public source_loc {
     std::string text;
     declaration_ref resolved_ref;
 };
 
-struct name_slice {
+struct name_slice : public source_loc {
     explicit_range* range{nullptr};
 };
 
-struct name_attribute {
+struct name_attribute : public source_loc {
     signature* signatue{nullptr};
     std::string designator;
 };
 
-struct name_arguments {
+struct name_arguments : public source_loc {
     std::vector<association_element*> associations;
 };
 
-struct name_node : source_loc {
+struct name_node : public source_loc {
     // std::string text;
     std::string value;
     name_kind_e kind{name_kind_e::SIMPLE};
@@ -438,22 +438,22 @@ struct name_node : source_loc {
     declaration_ref resolved_ref;
 };
 
-struct type_mark : source_loc {
+struct type_mark : public source_loc {
     name_node* name{nullptr};
     // elaborated members
     declaration_ref resolved_ref;
 };
 
-struct builtin_declaration {
+struct builtin_declaration : public source_loc {
     std::string identifier;
     entity_class_e entity_class;
 };
 
-struct library_clause {
+struct library_clause : public source_loc {
     std::vector<std::string> names;
 };
 
-struct used_package : source_loc {
+struct used_package : public source_loc {
     std::string identifier;
     std::vector<std::string> suffixes;
     // elaborated members
@@ -461,29 +461,29 @@ struct used_package : source_loc {
     declaration_ref selected_ref;
 };
 
-struct use_clause {
+struct use_clause : public source_loc {
     std::vector<used_package*> clauses;
 };
 
-struct context_reference {
+struct context_reference : public source_loc {
     std::vector<selected_name*> selected_names;
 };
 
-struct array_constraint {
+struct array_constraint : public source_loc {
     std::vector<discrete_range_item> index_constraint;
     bool is_open;
 };
 
-struct record_element_constraint {
+struct record_element_constraint : public source_loc {
     std::string identifier;
     subtype_indication* indication;
 };
 
-struct record_constraint {
+struct record_constraint : public source_loc {
     std::vector<record_element_constraint> constraint;
 };
 
-struct signal_declaration {
+struct signal_declaration : public source_loc {
     std::string identifier;
     signal_mode_e mode{ast::signal_mode_e::NONE};
     resolution_indication* resolution;
@@ -494,24 +494,24 @@ struct signal_declaration {
     declaration_ref type_ref;
 };
 
-struct block_specification {
+struct block_specification : public source_loc {
     std::string label;
     generate_specification_item generate_specification;
 };
 
-struct component_configuration {
+struct component_configuration : public source_loc {
     component_specification* component_spec;
     binding_indication* binding;
     block_configuration* block_config;
 };
 
-struct block_configuration {
+struct block_configuration : public source_loc {
     block_specification* block_spec;
     std::vector<use_clause*> use_clauses;
     std::vector<configuration_item> configuration_items;
 };
 
-struct configuration_declaration {
+struct configuration_declaration : public source_loc {
     std::string identifier;
     std::string name;
     std::vector<configuration_declarative_item> declarative_items;
@@ -523,14 +523,14 @@ struct configuration_declaration {
     entity_declaration* entity_ref{nullptr};
 };
 
-struct component_specification {
+struct component_specification : public source_loc {
     std::vector<std::string> instantiations;
     std::string name;
     // elaborated members
     component_declaration* component_ref{nullptr};
 };
 
-struct binding_indication {
+struct binding_indication : public source_loc {
     entity_aspect_e type{entity_aspect_e::OPEN};
     std::string unit_ref;
     std::string identifier;
@@ -542,12 +542,12 @@ struct binding_indication {
     configuration_declaration* configuration_ref{nullptr};
 };
 
-struct configuration_specification {
+struct configuration_specification : public source_loc {
     component_specification* component_spec;
     binding_indication* binding;
 };
 
-struct package_declaration {
+struct package_declaration : public source_loc {
     std::string identifier;
     std::vector<interface_declaration_item> generic_list;
     std::vector<association_element*> generic_map;
@@ -558,7 +558,7 @@ struct package_declaration {
     std::vector<package_body*> body;
 };
 
-struct package_instantiation_declaration {
+struct package_instantiation_declaration : public source_loc {
     std::string identifier;
     name_node* target_name{nullptr};
     std::vector<association_element*> generic_map;
@@ -568,14 +568,14 @@ struct package_instantiation_declaration {
     package_declaration* target_package_ref{nullptr};
 };
 
-struct selected_name : source_loc {
+struct selected_name : public source_loc {
     std::string identifier;
     std::string suffix;
     // elaborated members
     declaration_ref resolved_ref;
 };
 
-struct context_declaration {
+struct context_declaration : public source_loc {
     std::string identifier;
     std::vector<context_item> context_items;
     // elaborated members
@@ -583,13 +583,13 @@ struct context_declaration {
     design_file* my_file;
 };
 
-struct component_declaration {
+struct component_declaration : public source_loc {
     std::string identifier;
     std::vector<interface_declaration_item> generic_list;
     std::vector<interface_declaration_item> port_list;
 };
 
-struct subprogram_declaration {
+struct subprogram_declaration : public source_loc {
     bool is_function{false};
     std::string designator;
     std::vector<interface_declaration_item> generic_list;
@@ -600,104 +600,104 @@ struct subprogram_declaration {
     declaration_ref return_type_ref;
 };
 
-struct subprogram_declaration_overload {
+struct subprogram_declaration_overload : public source_loc {
     std::string designator;
     std::vector<subprogram_declaration*> overloads;
 };
 
-struct subprogram_instantiation_declaration {
+struct subprogram_instantiation_declaration : public source_loc {
     std::string designator;
     name_node* target_name{nullptr};
     // elaborated members
     subprogram_declaration* target_ref{nullptr};
 };
 
-struct enumeration_type_definition {
+struct enumeration_type_definition : public source_loc {
     std::vector<std::string> enumeration_literals;
 };
 
-struct secondary_unit {
+struct secondary_unit : public source_loc {
     physical_unit_lieral_e physical_literal_type{physical_unit_lieral_e::NONE};
     name_node* physical_literal_name{nullptr};
 };
 
-struct physical_unit_definition {
+struct physical_unit_definition : public source_loc {
     std::string primary_unit;
     std::vector<secondary_unit*> secondary_unit_identifiers;
 };
 
-struct numeric_type_definition {
+struct numeric_type_definition : public source_loc {
     std::variant<explicit_range*, attribute_range*> range;
     physical_unit_definition* physical_unit;
 };
 
-struct unbounded_array_definition {
+struct unbounded_array_definition : public source_loc {
     std::vector<type_mark*> index_subtype_definitions;
 };
 
-struct constrained_array_definition {
+struct constrained_array_definition : public source_loc {
     std::vector<discrete_range_item> index_constraints;
     subtype_indication* subtype_indication_;
 };
 
-struct element_declaration {
+struct element_declaration : public source_loc {
     std::string identifier;
     subtype_indication* element_subtype_definition;
 };
 
-struct record_type_definition {
+struct record_type_definition : public source_loc {
     std::vector<element_declaration*> element_declarations;
     std::string identifier;
 };
 
-struct type_declaration {
+struct type_declaration : public source_loc {
     std::string identifier;
     type_definition_item type;
 };
 
-struct protected_type_definition {
+struct protected_type_definition : public source_loc {
     protected_type_e type;
     std::vector<protected_type_declarative_item> declarations;
     std::vector<process_declarative_item> body_declarations;
 };
 
-struct protected_type_declaration {
+struct protected_type_declaration : public source_loc {
     std::vector<protected_type_declarative_item> protected_type_declarative_items;
     std::string identifier;
 };
 
-struct explicit_range {
+struct explicit_range : public source_loc {
     expression_item left;
     expression_item right;
     direction_e direction;
 };
 
-struct attribute_range {
+struct attribute_range : public source_loc {
     std::string name;
     std::string attribute_designator; // TODO: implement ast for attribute_designator
     // elaborated members
     declaration_ref prefix_ref;
 };
 
-struct subtype_declaration {
+struct subtype_declaration : public source_loc {
     std::string identifier;
     subtype_indication* indication;
 };
 
-struct constant_declaration {
+struct constant_declaration : public source_loc {
     std::string identifier;
     subtype_indication* indication;
     expression_item expr;
 };
 
-struct variable_declaration {
+struct variable_declaration : public source_loc {
     bool shared;
     std::string identifier;
     subtype_indication* indication;
     expression_item expr;
 };
 
-struct file_declaration {
+struct file_declaration : public source_loc {
     std::string identifier;
     subtype_indication* indication;
     // file_open_information
@@ -706,12 +706,12 @@ struct file_declaration {
     expression_item file_logical_name;
 };
 
-struct signature {
+struct signature : public source_loc {
     std::vector<type_mark*> type_marks;
     type_mark* return_type_mark{nullptr};
 };
 
-struct alias_declaration : source_loc {
+struct alias_declaration : public source_loc {
     std::string alias_designator;
     subtype_indication* indication;
     std::string name;
@@ -721,22 +721,21 @@ struct alias_declaration : source_loc {
     std::vector<declaration_ref> type_mark_refs;
     declaration_ref return_type_mark_ref;
 };
-
-struct attribute_declaration {
+struct attribute_declaration : public source_loc {
     std::string identifier;
     type_mark* type;
     // elaborated members
     declaration_ref type_ref;
 };
 
-struct interface_constant_declaration {
+struct interface_constant_declaration : public source_loc {
     std::string identifier;
     bool is_in{false};
     subtype_indication* subtype_indic;
     expression_item expression;
 };
 
-struct interface_signal_declaration {
+struct interface_signal_declaration : public source_loc {
     std::string identifier;
     signal_mode_e signal_mode{signal_mode_e::NONE};
     subtype_indication* subtype_indic;
@@ -744,29 +743,29 @@ struct interface_signal_declaration {
     expression_item expression;
 };
 
-struct interface_variable_declaration {
+struct interface_variable_declaration : public source_loc {
     std::string identifier;
     signal_mode_e signal_mode{signal_mode_e::NONE};
     subtype_indication* subtype_indic;
     expression_item expression;
 };
 
-struct interface_type_declaration {
+struct interface_type_declaration : public source_loc {
     std::string identifier;
 };
 
-struct interface_file_declaration {
+struct interface_file_declaration : public source_loc {
     std::string identifier;
     subtype_indication* subtype_indic;
 };
 
-struct interface_procedure_specification {
+struct interface_procedure_specification : public source_loc {
     std::string designator;
     bool is_parameter{false};
     std::vector<interface_declaration_item> formal_parameter_list;
 };
 
-struct interface_function_specification {
+struct interface_function_specification : public source_loc {
     bool is_pure{false};
     bool is_impure{false};
     std::string designator;
@@ -776,13 +775,13 @@ struct interface_function_specification {
     declaration_ref return_type_ref;
 };
 
-struct interface_subprogram_declaration {
+struct interface_subprogram_declaration : public source_loc {
     std::variant<interface_procedure_specification*, interface_function_specification*> nterface_subprogram_specification;
     bool is_box{false};
     name_node* interface_subprogram_default{nullptr};
 };
 
-struct interface_package_declaration {
+struct interface_package_declaration : public source_loc {
     std::string identifier;
     name_node* name{nullptr};
     generic_map_aspect_e map_type{generic_map_aspect_e::MAP};
@@ -791,16 +790,16 @@ struct interface_package_declaration {
     package_declaration* package_ref{nullptr};
 };
 
-struct entity_designator {
+struct entity_designator : public source_loc {
     name_node* entity_tag{nullptr};
     signature* signatue{nullptr};
 };
 
-struct entity_designator_list {
+struct entity_designator_list : public source_loc {
     std::vector<entity_designator*> name_list;
 };
 
-struct attribute_specification {
+struct attribute_specification : public source_loc {
     std::string attribute_designator; // TODO: implement ast for attribute_designator
     std::variant<literal_node*, entity_designator_list*> entity_names;
     entity_class_e entity_class;
@@ -809,17 +808,17 @@ struct attribute_specification {
     std::vector<declaration_ref> entity_refs;
 };
 
-struct entity_class_entry {
+struct entity_class_entry : public source_loc {
     entity_class_e entity_class;
     bool is_box;
 };
 
-struct group_template_declaration {
+struct group_template_declaration : public source_loc {
     std::string identifier;
     std::vector<entity_class_entry*> entity_class_entry_list;
 };
 
-struct group_declaration {
+struct group_declaration : public source_loc {
     std::string identifier;
     std::string name;
     std::vector<std::string> group_constituent_list;
@@ -828,13 +827,13 @@ struct group_declaration {
     std::vector<declaration_ref> constituent_refs;
 };
 
-struct subprogram_body {
+struct subprogram_body : public source_loc {
     subprogram_declaration* specification{nullptr};
     std::vector<package_body_declarative_item> declarative_items;
     std::vector<sequential_statement*> sequential_statements;
 };
 
-struct package_body {
+struct package_body : public source_loc {
     std::string identifier;
     std::vector<package_body_declarative_item> declarative_items;
     // elaborated members
@@ -844,7 +843,7 @@ struct package_body {
     package_declaration* package_ref{nullptr};
 };
 
-struct disconnection_specification {
+struct disconnection_specification : public source_loc {
     std::string signal_name;
     type_mark* type;
     expression_item after_expression;
@@ -853,14 +852,14 @@ struct disconnection_specification {
     declaration_ref type_ref;
 };
 
-struct actual_designator {
+struct actual_designator : public source_loc {
     bool is_inertial;
     bool is_open;
     expression_item expr;
     subtype_indication* indication;
 };
 
-struct association_element {
+struct association_element : public source_loc {
     std::string formal_name;
     std::string formal_paren_name;
     std::string actual_name;
@@ -870,50 +869,50 @@ struct association_element {
     declaration_ref actual_ref;
 };
 
-struct record_element_resolution {
+struct record_element_resolution : public source_loc {
     std::string identifier;
     resolution_indication* resolution;
 };
 
-struct record_resolution {
+struct record_resolution : public source_loc {
     std::vector<record_element_resolution*> elems;
 };
 
-struct resolution_indication {
+struct resolution_indication : public source_loc {
     std::string name;
     resolution_item elem_resolution;
     // elaborated members
     declaration_ref resolution_ref;
 };
 
-struct subtype_indication {
+struct subtype_indication : public source_loc {
     resolution_indication* resolution{nullptr};
     type_mark* type{nullptr};
     constraint_item constr;
 };
 
-struct qualified_expression {
+struct qualified_expression : public source_loc {
     type_mark* type{nullptr};
     aggregate* aggr;
     // elaborated members
     declaration_ref type_ref;
 };
 
-struct allocator {
+struct allocator : public source_loc {
     subtype_indication* si;
     qualified_expression* qe;
 };
 
-struct aggregate {
+struct aggregate : public source_loc {
     std::vector<element_association*> elem_assoc;
 };
 
-struct element_association {
+struct element_association : public source_loc {
     std::vector<simple_expression*> choices;
     expression_item expr;
 };
 
-struct simple_expression {
+struct simple_expression : public source_loc {
     simple_expression_kind_e kind{simple_expression_kind_e::RAW};
     operation_kind_e op{operation_kind_e::NONE};
     primary_item first_primary;
@@ -923,23 +922,23 @@ struct simple_expression {
     simple_expression* operand{nullptr};
 };
 
-struct conditional_primary {
+struct conditional_primary : public source_loc {
     primary_item prim;
 };
 
-struct binary_expression {
+struct binary_expression : public source_loc {
     operation_kind_e op;
     expression_item lhs;
     expression_item rhs;
 };
 
-struct concurrent_statement_body {
+struct concurrent_statement_body : public source_loc {
     std::vector<block_declarative_item*> block_declarative_items;
     std::vector<concurrent_statement*> concurrent_statements;
     std::string label;
 };
 
-struct block_statement {
+struct block_statement : public source_loc {
     expression_item condition;
     std::vector<interface_declaration_item> generic_list;
     std::vector<association_element*> generic_map;
@@ -950,12 +949,12 @@ struct block_statement {
     std::string label;
 };
 
-struct concurrent_statement {
+struct concurrent_statement : public source_loc {
     std::string label;
     concurrent_statement_item statement;
 };
 
-struct component_instantiation_statement {
+struct component_instantiation_statement : public source_loc {
     std::string label;
     instantiated_unit_kind_e unit_kind{instantiated_unit_kind_e::COMPONENT};
     std::string unit_name;
@@ -970,25 +969,25 @@ struct component_instantiation_statement {
     component_instantiation_statement* clone(ast_node_factory& anf);
 };
 
-struct generate_statement_body {
+struct generate_statement_body : public source_loc {
     std::vector<block_declarative_item> block_declarative_items;
     std::vector<concurrent_statement*> concurrent_statements;
 };
 
-struct for_generate_statement {
+struct for_generate_statement : public source_loc {
     std::string label;
     std::string parameter;
     std::string range;
     generate_statement_body body;
 };
 
-struct if_generate_clause {
+struct if_generate_clause : public source_loc {
     std::string label;
     expression_item condition;
     generate_statement_body body;
 };
 
-struct if_generate_statement {
+struct if_generate_statement : public source_loc {
     std::string label;
     std::vector<if_generate_clause*> clauses;
     bool has_else{false};
@@ -996,19 +995,19 @@ struct if_generate_statement {
     generate_statement_body else_body;
 };
 
-struct case_generate_alternative {
+struct case_generate_alternative : public source_loc {
     std::string label;
     std::vector<choice_item> choices;
     generate_statement_body body;
 };
 
-struct case_generate_statement {
+struct case_generate_statement : public source_loc {
     std::string label;
     std::string expression;
     std::vector<case_generate_alternative*> alternatives;
 };
 
-struct process_statement {
+struct process_statement : public source_loc {
     std::string label;
     bool postponed{false};
     bool sensitivity_all{false};
@@ -1019,7 +1018,7 @@ struct process_statement {
     std::vector<declaration_ref> sensitivity_refs;
 };
 
-struct concurrent_procedure_call_statement {
+struct concurrent_procedure_call_statement : public source_loc {
     std::string label;
     bool postponed{false};
     std::string name;
@@ -1027,7 +1026,7 @@ struct concurrent_procedure_call_statement {
     declaration_ref procedure_ref;
 };
 
-struct concurrent_assertion_statement {
+struct concurrent_assertion_statement : public source_loc {
     std::string label;
     bool postponed{false};
     expression_item condition;
@@ -1035,17 +1034,17 @@ struct concurrent_assertion_statement {
     expression_item severity;
 };
 
-struct waveform_element {
+struct waveform_element : public source_loc {
     expression_item value;
     expression_item after_expression;
 };
 
-struct conditional_waveform_element {
+struct conditional_waveform_element : public source_loc {
     std::vector<waveform_element*> waveform;
     expression_item condition;
 };
 
-struct concurrent_signal_assignment_any {
+struct concurrent_signal_assignment_any : public source_loc {
     bool postponed{false};
     concurrent_signal_assignment_kind_e kind{concurrent_signal_assignment_kind_e::SIMPLE};
     target_item target;
@@ -1056,12 +1055,12 @@ struct concurrent_signal_assignment_any {
     std::vector<conditional_waveform_element*> conditional_waveforms;
 };
 
-struct selected_waveform_element {
+struct selected_waveform_element : public source_loc {
     std::vector<waveform_element*> waveform;
     std::vector<choice_item> choices;
 };
 
-struct concurrent_selected_signal_assignment {
+struct concurrent_selected_signal_assignment : public source_loc {
     bool postponed{false};
     expression_item with_expression;
     target_item target;
@@ -1071,12 +1070,12 @@ struct concurrent_selected_signal_assignment {
     std::vector<selected_waveform_element*> selected_waveforms;
 };
 
-struct entity_statement {
+struct entity_statement : public source_loc {
     std::string label;
     std::variant<concurrent_assertion_statement*, concurrent_procedure_call_statement*, process_statement*> statement;
 };
 
-struct entity_declaration {
+struct entity_declaration : public source_loc {
     std::string identifier;
     std::vector<interface_declaration_item> generic_list;
     std::vector<interface_declaration_item> port_list;
@@ -1088,7 +1087,7 @@ struct entity_declaration {
     std::vector<architecture_body*> architectures;
 };
 
-struct architecture_body {
+struct architecture_body : public source_loc {
     std::string identifier;
     name_node* primary{nullptr};
     std::vector<block_declarative_item> block_declarative_items;
@@ -1101,17 +1100,17 @@ struct architecture_body {
     architecture_body* clone(ast_node_factory&);
 };
 
-struct design_file {
+struct design_file : public source_loc {
     std::vector<unit_item> units;
     std::string lib_name;
 };
 
-struct sequential_statement {
+struct sequential_statement : public source_loc {
     std::string label;
     sequential_statement_item stmt;
 };
 
-struct wait_statement {
+struct wait_statement : public source_loc {
     std::vector<std::string> sensitivity_list;
     expression_item condition_clause;
     expression_item timeout_clause;
@@ -1119,54 +1118,54 @@ struct wait_statement {
     std::vector<declaration_ref> sensitivity_refs;
 };
 
-struct assertion_statement {
+struct assertion_statement : public source_loc {
     expression_item condition;
     expression_item report;
     expression_item severity;
 };
 
-struct report_statement {
+struct report_statement : public source_loc {
     expression_item report;
     expression_item severity;
 };
 
-struct simple_waveform_assignment {
+struct simple_waveform_assignment : public source_loc {
     target_item target;
     delay_mechanism_e delay_mechanism_type{delay_mechanism_e::TRANSPORT};
     expression_item delay_mechanism_reject;
     std::vector<waveform_element> waveform;
 };
 
-struct simple_force_assignment {
+struct simple_force_assignment : public source_loc {
     target_item target;
     force_mode_e force_mode;
     std::vector<waveform_element> waveform;
 };
 
-struct simple_release_assignment {
+struct simple_release_assignment : public source_loc {
     target_item target;
     force_mode_e force_mode;
 };
 
-struct conditional_waveform_assignment {
+struct conditional_waveform_assignment : public source_loc {
     target_item target;
     delay_mechanism_e delay_mechanism_type{delay_mechanism_e::TRANSPORT};
     expression_item delay_mechanism_reject;
     std::vector<conditional_waveform_element> conditional_waveforms;
 };
 
-struct conditional_expression_element {
+struct conditional_expression_element : public source_loc {
     expression_item value;
     expression_item condition;
 };
 
-struct conditional_force_assignment {
+struct conditional_force_assignment : public source_loc {
     target_item target;
     force_mode_e force_mode;
     std::vector<conditional_expression_element*> conditional_expressions;
 };
 
-struct selected_waveform_assignment {
+struct selected_waveform_assignment : public source_loc {
     expression_item with_expression;
     bool is_questionable{false};
     target_item target;
@@ -1175,12 +1174,12 @@ struct selected_waveform_assignment {
     std::vector<selected_waveform_element*> selected_waveforms;
 };
 
-struct selected_expression_element {
+struct selected_expression_element : public source_loc {
     waveform_element waveform;
     std::vector<choice_item> choices;
 };
 
-struct selected_force_assignment {
+struct selected_force_assignment : public source_loc {
     expression_item with_expression;
     bool is_questionable{false};
     target_item target;
@@ -1188,66 +1187,66 @@ struct selected_force_assignment {
     std::vector<selected_expression_element*> selected_expressions;
 };
 
-struct simple_variable_assignment {
+struct simple_variable_assignment : public source_loc {
     target_item target;
     expression_item value;
 };
-struct conditional_variable_assignment {
+struct conditional_variable_assignment : public source_loc {
     target_item target;
     std::vector<conditional_expression_element*> conditional_expressions;
 };
-struct selected_variable_assignment {
+struct selected_variable_assignment : public source_loc {
     expression_item with_expression;
     bool is_questionable{false};
     target_item target;
     std::vector<selected_expression_element*> selected_expressions;
 };
 
-struct procedure_call_statement {
+struct procedure_call_statement : public source_loc {
     std::string name;
     // elaborated members
     declaration_ref procedure_ref;
 };
 
-struct if_statement {
+struct if_statement : public source_loc {
     std::vector<std::tuple<expression_item, std::vector<sequential_statement_item>>> if_clauses;
     std::vector<sequential_statement_item> else_clauses;
 };
 
-struct case_statement_alternative {
+struct case_statement_alternative : public source_loc {
     std::vector<choice_item> choices;
     std::vector<sequential_statement_item> statements;
 };
 
-struct case_statement {
+struct case_statement : public source_loc {
     expression_item expression;
     std::vector<case_statement_alternative> alternatives;
 };
 
-struct parameter_specification {
+struct parameter_specification : public source_loc {
     std::string for_identifier;
     discrete_range_item range;
 };
 
-struct loop_statement {
+struct loop_statement : public source_loc {
     loop_expression_item iteration_scheme;
     std::vector<sequential_statement_item> statements;
 };
 
-struct next_statement {
+struct next_statement : public source_loc {
     std::string label;
     expression_item exit_expression;
 };
 
-struct exit_statement {
+struct exit_statement : public source_loc {
     std::string label;
     expression_item exit_expression;
 };
 
-struct return_statement {
+struct return_statement : public source_loc {
     expression_item return_expression;
 };
 
-struct null_statement {};
+struct null_statement : public source_loc {};
 
 } // namespace ast
