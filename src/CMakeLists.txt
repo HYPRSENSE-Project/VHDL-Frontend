@@ -7,7 +7,7 @@ add_executable(vhdl_fe
     main.cpp
     ast_printer.cpp
 )
-
+target_compile_definitions(vhdl_fe PRIVATE $<$<CONFIG:DEBUG>:_GLIBCXX_DEBUG>)
 target_include_directories(vhdl_fe PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(vhdl_fe PRIVATE vhdl_fe::parser vhdl_fe::elaboration)
 
