@@ -81,6 +81,18 @@ if(NOT DEFINED ANTLR4_WITH_STATIC_CRT)
   set(ANTLR4_WITH_STATIC_CRT ON)
 endif()
 
+# ExternalProject does not inherit the parent project's compiler flags.
+# Forward them explicitly to keep the runtime's C++ ABI consistent with users.
+set(ANTLR4_CXX_CACHE_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}")
+set(ANTLR4_CONFIGURATIONS Debug Release RelWithDebInfo MinSizeRel
+    ${CMAKE_CONFIGURATION_TYPES} ${CMAKE_BUILD_TYPE})
+list(REMOVE_DUPLICATES ANTLR4_CONFIGURATIONS)
+foreach(ANTLR4_CONFIG IN LISTS ANTLR4_CONFIGURATIONS)
+  string(TOUPPER "${ANTLR4_CONFIG}" ANTLR4_CONFIG_UPPER)
+  list(APPEND ANTLR4_CXX_CACHE_ARGS
+      "-DCMAKE_CXX_FLAGS_${ANTLR4_CONFIG_UPPER}:STRING=${CMAKE_CXX_FLAGS_${ANTLR4_CONFIG_UPPER}}")
+endforeach()
+
 if(ANTLR4_ZIP_REPOSITORY)
   ExternalProject_Add(
       antlr4_runtime
@@ -92,6 +104,7 @@ if(ANTLR4_ZIP_REPOSITORY)
       SOURCE_DIR ${ANTLR4_ROOT}
       SOURCE_SUBDIR runtime/Cpp
       CMAKE_CACHE_ARGS
+          ${ANTLR4_CXX_CACHE_ARGS}
           -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
           -DWITH_STATIC_CRT:BOOL=${ANTLR4_WITH_STATIC_CRT}
           -DDISABLE_WARNINGS:BOOL=ON
@@ -111,6 +124,7 @@ else()
       SOURCE_DIR ${ANTLR4_ROOT}
       SOURCE_SUBDIR runtime/Cpp
       CMAKE_CACHE_ARGS
+          ${ANTLR4_CXX_CACHE_ARGS}
           -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
           -DWITH_STATIC_CRT:BOOL=${ANTLR4_WITH_STATIC_CRT}
           -DDISABLE_WARNINGS:BOOL=ON
@@ -131,6 +145,7 @@ ExternalProject_Add_Step(
     antlr4_runtime
     build_static
     COMMAND ${ANTLR4_BUILD_COMMAND} antlr4_static
+    DEPENDEES build
     # Depend on target instead of step (a custom command)
     # to avoid running dependent steps concurrently
     DEPENDS antlr4_runtime
@@ -152,6 +167,7 @@ ExternalProject_Add_Step(
     antlr4_runtime
     build_shared
     COMMAND ${ANTLR4_BUILD_COMMAND} antlr4_shared
+    DEPENDEES build
     # Depend on target instead of step (a custom command)
     # to avoid running dependent steps concurrently
     DEPENDS antlr4_runtime
